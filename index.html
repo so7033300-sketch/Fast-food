@@ -154,6 +154,12 @@
       }
     });
 
+    // Kassir "Menyuni boshqarish" bo'limida taom qo'shsa/o'zgartirsa/o'chirsa,
+    // bu sahifa avtomat ravishda yangi menyuni qayta yuklaydi.
+    socket.on('menu-updated', () => {
+      loadMenu();
+    });
+
     // ==========================================================================
     //  MENYUNI SERVERDAN OLIB, KATEGORIYALARGA AJRATIB CHIQARISH
     // ==========================================================================
