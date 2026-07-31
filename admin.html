@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kassa Paneli — Fast Burger</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; }
+  ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  @keyframes flashCard { 0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.6);} 50% { box-shadow: 0 0 0 8px rgba(249,115,22,0);} }
+  .order-flash { animation: flashCard 1s ease-in-out 3; }
+
+  /* ================= CHEK (80mm) UCHUN PRINT STILLARI ================= */
+  #print-area { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 80mm;
+      font-family: 'Courier New', monospace;
+    }
+    @page { size: 80mm auto; margin: 2mm; }
+  }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- ============ HEADER ============ -->
+  <header class="bg-gray-900 text-white sticky top-0 z-30 shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-extrabold">🧾 KASSA PANELI</h1>
+        <p class="text-xs text-gray-400">Fast Burger — Real-time buyurtmalar boshqaruvi</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span id="conn-dot" class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+        <span id="conn-text" class="text-gray-300">Ulanmoqda...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+
+    <!-- ============ YANGI BUYURTMALAR ============ -->
+    <section>
+      <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="w-1.5 h-6 bg-orange-500 rounded-full"></span>
+        Yangi buyurtmalar
+        <span id="new-orders-count" class="ml-1 bg-orange-500 text-white text-xs font-bold rounded-full px-2 py-0.5">0</span>
+      </h2>
+      <div id="new-orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p id="no-new-orders" class="text-gray-400 text-sm">Hozircha yangi buyurtma yo'q.</p>
+      </div>
+    </section>
+
+    <!-- ============ TO'LANGAN BUYURTMALAR TARIXI ============ -->
+    <section>
+      <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="w-1.5 h-6 bg-green-500 rounded-full"></span>
+        To'langan buyurtmalar (so'nggi 20 ta)
+      </h2>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-left">
+            <tr>
+              <th class="px-4 py-2 font-semibold">Vaqt</th>
+              <th class="px-4 py-2 font-semibold">Stol</th>
+              <th class="px-4 py-2 font-semibold">Taomlar</th>
+              <th class="px-4 py-2 font-semibold text-right">Summa</th>
+            </tr>
+          </thead>
+          <tbody id="paid-orders-body">
+            <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">Ma'lumot yo'q</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ MOLIYA VA FOYDA STATISTIKASI ============ -->
+    <section>
+      <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="w-1.5 h-6 bg-blue-500 rounded-full"></span>
+        Moliya va foyda statistikasi — <span id="current-month-label" class="text-blue-600">joriy oy</span>
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Umumiy tushum</p>
+          <p id="stat-revenue" class="text-2xl font-extrabold text-gray-800">0 so'm</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Umumiy tannarx</p>
+          <p id="stat-cost" class="text-2xl font-extrabold text-gray-500">0 so'm</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-2 border-green-200 p-5">
+          <p class="text-xs text-green-500 uppercase tracking-wide mb-1">Sof foyda</p>
+          <p id="stat-profit" class="text-2xl font-extrabold text-green-600">0 so'm</p>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 mt-2">
+        ℹ️ Har oyning 1-sanasida bu hisoblagichlar avtomat 0 ga tushiriladi, o'tgan oyning yakuniy hisoboti quyidagi "Arxiv" bo'limiga ko'chiriladi.
+      </p>
+    </section>
+
+    <!-- ============ ARXIV (ENG PASTDA) ============ -->
+    <section>
+      <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="w-1.5 h-6 bg-gray-400 rounded-full"></span>
+        📦 Arxiv — o'tgan oylar hisoboti
+      </h2>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-left">
+            <tr>
+              <th class="px-4 py-2 font-semibold">Yil</th>
+              <th class="px-4 py-2 font-semibold">Oy</th>
+              <th class="px-4 py-2 font-semibold text-right">Jami tushum</th>
+              <th class="px-4 py-2 font-semibold text-right">Jami tannarx</th>
+              <th class="px-4 py-2 font-semibold text-right">Sof foyda</th>
+            </tr>
+          </thead>
+          <tbody id="archive-body">
+            <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Arxiv hozircha bo'sh</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ CHOP ETISH UCHUN YASHIRIN CHEK (80mm) ============ -->
+  <div id="print-area"></div>
+
+  <script>
+    const MONTH_NAMES = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+
+    function formatMoney(n) {
+      return (n || 0).toLocaleString('uz-UZ') + " so'm";
+    }
+    function formatTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ==========================================================================
+    //  OVOZLI SIGNAL — Web Audio API orqali (tashqi fayl kerak emas)
+    // ==========================================================================
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.18, 0.36].forEach((delay) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = 880;
+          gain.gain.value = 0.2;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + 0.15);
+        });
+      } catch (e) {
+        console.warn('Ovoz signalini ijro etib bo\'lmadi:', e);
+      }
+    }
+
+    // ==========================================================================
+    //  SOCKET.IO
+    // ==========================================================================
+    const socket = io();
+    socket.emit('join-admin');
+
+    socket.on('connect', () => {
+      document.getElementById('conn-dot').classList.remove('bg-red-500');
+      document.getElementById('conn-dot').classList.add('bg-green-500');
+      document.getElementById('conn-text').textContent = 'Ulangan';
+    });
+    socket.on('disconnect', () => {
+      document.getElementById('conn-dot').classList.remove('bg-green-500');
+      document.getElementById('conn-dot').classList.add('bg-red-500');
+      document.getElementById('conn-text').textContent = 'Uzildi';
+    });
+
+    socket.on('new-order', (order) => {
+      playBeep();
+      newOrders.unshift(order);
+      renderNewOrders();
+    });
+
+    socket.on('order-paid', (order) => {
+      newOrders = newOrders.filter((o) => o.id !== order.id);
+      paidOrders.unshift(order);
+      renderNewOrders();
+      renderPaidOrders();
+    });
+
+    socket.on('order-cancelled', (order) => {
+      newOrders = newOrders.filter((o) => o.id !== order.id);
+      renderNewOrders();
+    });
+
+    socket.on('stats-update', ({ stats, archive }) => {
+      renderStats(stats);
+      renderArchive(archive);
+    });
+
+    // ==========================================================================
+    //  HOLAT (STATE)
+    // ==========================================================================
+    let newOrders = [];
+    let paidOrders = [];
+
+    async function loadOrders() {
+      const res = await fetch('/api/orders');
+      const all = await res.json();
+      newOrders = all.filter((o) => o.status === 'new');
+      paidOrders = all.filter((o) => o.status === 'paid').slice(0, 20);
+      renderNewOrders();
+      renderPaidOrders();
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      renderStats(data.stats);
+      renderArchive(data.archive);
+    }
+
+    // ==========================================================================
+    //  YANGI BUYURTMALARNI CHIZISH
+    // ==========================================================================
+    function renderNewOrders() {
+      const container = document.getElementById('new-orders-container');
+      const emptyMsg = document.getElementById('no-new-orders');
+      document.getElementById('new-orders-count').textContent = newOrders.length;
+
+      if (newOrders.length === 0) {
+        container.innerHTML = '';
+        container.appendChild(emptyMsg);
+        return;
+      }
+
+      container.innerHTML = newOrders
+        .map(
+          (order) => `
+        <div class="order-flash bg-white rounded-2xl shadow-md border-2 border-orange-200 p-4" id="order-${order.id}">
+          <div class="flex items-center justify-between mb-2">
+            <span class="bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-lg">Stol #${order.table}</span>
+            <span class="text-xs text-gray-400">${formatTime(order.createdAt)}</span>
+          </div>
+          <ul class="text-sm text-gray-700 space-y-1 mb-3">
+            ${order.items.map((it) => `<li class="flex justify-between"><span>${it.qty} x ${it.name}</span><span class="text-gray-400">${formatMoney(it.lineTotal)}</span></li>`).join('')}
+          </ul>
+          <div class="flex items-center justify-between border-t pt-2 mb-3">
+            <span class="text-sm text-gray-500 font-semibold">Jami</span>
+            <span class="text-lg font-extrabold text-gray-800">${formatMoney(order.total)}</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="cancelOrder('${order.id}')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 text-xs font-semibold py-2 rounded-xl">Bekor qilish</button>
+            <button onclick="payAndPrint('${order.id}')" class="flex-[2] bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2.5 rounded-xl active:scale-[0.98] transition">
+              ✅ To'lovni tasdiqlash va Chop etish
+            </button>
+          </div>
+        </div>`
+        )
+        .join('');
+    }
+
+    function renderPaidOrders() {
+      const body = document.getElementById('paid-orders-body');
+      if (paidOrders.length === 0) {
+        body.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">Ma'lumot yo'q</td></tr>`;
+        return;
+      }
+      body.innerHTML = paidOrders
+        .map(
+          (order) => `
+        <tr class="border-t border-gray-100">
+          <td class="px-4 py-2 text-gray-500">${formatTime(order.paidAt || order.createdAt)}</td>
+          <td class="px-4 py-2 font-semibold">#${order.table}</td>
+          <td class="px-4 py-2 text-gray-500">${order.items.map((it) => it.qty + 'x ' + it.name).join(', ')}</td>
+          <td class="px-4 py-2 text-right font-bold text-green-600">${formatMoney(order.total)}</td>
+        </tr>`
+        )
+        .join('');
+    }
+
+    // ==========================================================================
+    //  TO'LOVNI TASDIQLASH + 80mm CHEK CHOP ETISH
+    // ==========================================================================
+    async function payAndPrint(orderId) {
+      const order = newOrders.find((o) => o.id === orderId);
+      if (!order) return;
+
+      try {
+        const res = await fetch(`/api/orders/${orderId}/pay`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Xatolik');
+        }
+        const paidOrder = await res.json();
+
+        buildReceipt(paidOrder);
+        setTimeout(() => window.print(), 150);
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      }
+    }
+
+    function cancelOrder(orderId) {
+      if (!confirm("Bu buyurtmani bekor qilishga ishonchingiz komilmi?")) return;
+      fetch(`/api/orders/${orderId}/cancel`, { method: 'POST' });
+    }
+
+    // ---- 80mm KASSA CHEKI HTML QURILISHI ----
+    function buildReceipt(order) {
+      const printArea = document.getElementById('print-area');
+      const now = new Date(order.paidAt);
+      printArea.innerHTML = `
+        <div style="text-align:center; font-size:13px; line-height:1.4;">
+          <div style="font-size:16px; font-weight:bold;">FAST BURGER</div>
+          <div>Fast-Food kafesi</div>
+          <div>--------------------------------</div>
+          <div>Sana: ${now.toLocaleDateString('uz-UZ')} ${now.toLocaleTimeString('uz-UZ')}</div>
+          <div>Stol: #${order.table}   Chek: ${order.id}</div>
+          <div>--------------------------------</div>
+        </div>
+        <table style="width:100%; font-size:12px; margin-top:4px;">
+          ${order.items
+            .map(
+              (it) => `
+            <tr>
+              <td style="text-align:left;">${it.qty} x ${it.name}</td>
+              <td style="text-align:right;">${formatMoney(it.lineTotal)}</td>
+            </tr>`
+            )
+            .join('')}
+        </table>
+        <div style="text-align:center; font-size:13px; margin-top:6px;">--------------------------------</div>
+        <table style="width:100%; font-size:14px; font-weight:bold;">
+          <tr><td>JAMI:</td><td style="text-align:right;">${formatMoney(order.total)}</td></tr>
+        </table>
+        <div style="text-align:center; font-size:12px; margin-top:4px;">To'lov: Naqd pul / Terminal</div>
+        <div style="text-align:center; font-size:13px; margin-top:10px;">--------------------------------</div>
+        <div style="text-align:center; font-size:12px;">Xaridingiz uchun rahmat!</div>
+        <div style="text-align:center; font-size:12px;">Yana kutib qolamiz 🍔</div>
+      `;
+    }
+
+    // ==========================================================================
+    //  STATISTIKA VA ARXIVNI CHIZISH
+    // ==========================================================================
+    function renderStats(stats) {
+      document.getElementById('current-month-label').textContent =
+        MONTH_NAMES[stats.currentMonth - 1] + ' ' + stats.currentYear;
+      document.getElementById('stat-revenue').textContent = formatMoney(stats.totalRevenue);
+      document.getElementById('stat-cost').textContent = formatMoney(stats.totalCost);
+      document.getElementById('stat-profit').textContent = formatMoney(stats.totalProfit);
+    }
+
+    function renderArchive(archive) {
+      const body = document.getElementById('archive-body');
+      if (!archive || archive.length === 0) {
+        body.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Arxiv hozircha bo'sh</td></tr>`;
+        return;
+      }
+      body.innerHTML = archive
+        .map(
+          (a) => `
+        <tr class="border-t border-gray-100">
+          <td class="px-4 py-2">${a.year}</td>
+          <td class="px-4 py-2 font-semibold">${MONTH_NAMES[a.month - 1]}</td>
+          <td class="px-4 py-2 text-right">${formatMoney(a.totalRevenue)}</td>
+          <td class="px-4 py-2 text-right text-gray-500">${formatMoney(a.totalCost)}</td>
+          <td class="px-4 py-2 text-right font-bold text-green-600">${formatMoney(a.totalProfit)}</td>
+        </tr>`
+        )
+        .join('');
+    }
+
+    // ==========================================================================
+    //  DAVRIY YANGILANISH — oy almashishini ushlab qolish uchun har 60 soniyada
+    //  statistikani qayta so'raymiz (asosiy yangilanish socket orqali keladi,
+    //  bu esa panel uzoq ochiq turganda qo'shimcha kafolat beradi)
+    // ==========================================================================
+    setInterval(loadStats, 60 * 1000);
+
+    // Ishga tushirish
+    loadOrders();
+    loadStats();
+  </script>
+</body>
+</html>

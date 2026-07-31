@@ -1,0 +1,1468 @@
+{
+  "orders": [
+    {
+      "id": "ORD-1785473670567-971",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 88000,
+      "totalCost": 44000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:54:30.568Z",
+      "paidAt": "2026-07-31T04:54:43.077Z"
+    },
+    {
+      "id": "ORD-1785473730045-115",
+      "table": "4",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 5,
+          "lineTotal": 110000
+        },
+        {
+          "id": "lavash-beef",
+          "name": "Go'shtli Lavash",
+          "price": 26000,
+          "qty": 1,
+          "lineTotal": 26000
+        },
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 4,
+          "lineTotal": 112000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 10,
+          "lineTotal": 350000
+        },
+        {
+          "id": "burger-chicken",
+          "name": "Chicken Burger",
+          "price": 24000,
+          "qty": 1,
+          "lineTotal": 24000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "fries-small",
+          "name": "Kartoshka Fri (kichik)",
+          "price": 12000,
+          "qty": 1,
+          "lineTotal": 12000
+        },
+        {
+          "id": "fries-big",
+          "name": "Kartoshka Fri (katta)",
+          "price": 18000,
+          "qty": 1,
+          "lineTotal": 18000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        },
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "sprite",
+          "name": "Sprite 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "water",
+          "name": "Ichimlik suvi 0.5L",
+          "price": 4000,
+          "qty": 1,
+          "lineTotal": 4000
+        },
+        {
+          "id": "fanta",
+          "name": "Fanta 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "ayran",
+          "name": "Ayron 0.5L",
+          "price": 6000,
+          "qty": 1,
+          "lineTotal": 6000
+        }
+      ],
+      "total": 759000,
+      "totalCost": 370500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:55:30.045Z",
+      "paidAt": "2026-07-31T04:55:36.453Z"
+    },
+    {
+      "id": "ORD-1785473749301-622",
+      "table": "4",
+      "items": [
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 20000,
+      "totalCost": 9000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:55:49.301Z",
+      "paidAt": "2026-07-31T04:55:51.540Z"
+    },
+    {
+      "id": "ORD-1785473758075-32",
+      "table": "4",
+      "items": [
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 28000,
+      "totalCost": 12000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:55:58.075Z",
+      "paidAt": "2026-07-31T04:56:00.689Z"
+    },
+    {
+      "id": "ORD-1785473773458-232",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 53000,
+      "totalCost": 26000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:56:13.458Z",
+      "paidAt": "2026-07-31T04:56:17.145Z"
+    },
+    {
+      "id": "ORD-1785473800515-412",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 2,
+          "lineTotal": 56000
+        },
+        {
+          "id": "burger-chicken",
+          "name": "Chicken Burger",
+          "price": 24000,
+          "qty": 1,
+          "lineTotal": 24000
+        }
+      ],
+      "total": 140000,
+      "totalCost": 69000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:56:40.515Z",
+      "paidAt": "2026-07-31T04:56:47.370Z"
+    },
+    {
+      "id": "ORD-1785473815473-331",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:56:55.473Z",
+      "paidAt": "2026-07-31T04:57:59.640Z"
+    },
+    {
+      "id": "ORD-1785473824142-807",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:57:04.142Z",
+      "paidAt": "2026-07-31T04:57:57.728Z"
+    },
+    {
+      "id": "ORD-1785473830204-389",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-chicken",
+          "name": "Chicken Burger",
+          "price": 24000,
+          "qty": 1,
+          "lineTotal": 24000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 52000,
+      "totalCost": 25000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:57:10.204Z",
+      "paidAt": "2026-07-31T04:57:49.760Z"
+    },
+    {
+      "id": "ORD-1785473835080-157",
+      "table": "4",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 82000,
+      "totalCost": 40000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:57:15.080Z",
+      "paidAt": "2026-07-31T04:57:47.476Z"
+    },
+    {
+      "id": "ORD-1785473846896-196",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:57:26.896Z",
+      "paidAt": "2026-07-31T04:57:55.448Z"
+    },
+    {
+      "id": "ORD-1785473852564-223",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "burger-chicken",
+          "name": "Chicken Burger",
+          "price": 24000,
+          "qty": 1,
+          "lineTotal": 24000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 112000,
+      "totalCost": 55000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:57:32.564Z",
+      "paidAt": "2026-07-31T04:57:35.891Z"
+    },
+    {
+      "id": "ORD-1785473914936-909",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 25000,
+      "totalCost": 12000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T04:58:34.936Z",
+      "paidAt": "2026-07-31T04:58:40.269Z"
+    },
+    {
+      "id": "ORD-1785474005163-0",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 30,
+          "lineTotal": 1050000
+        }
+      ],
+      "total": 1050000,
+      "totalCost": 540000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:00:05.163Z",
+      "paidAt": "2026-07-31T05:00:10.523Z"
+    },
+    {
+      "id": "ORD-1785474157733-184",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "cancelled",
+      "createdAt": "2026-07-31T05:02:37.733Z",
+      "paidAt": null
+    },
+    {
+      "id": "ORD-1785474171965-310",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 53000,
+      "totalCost": 26000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:02:51.965Z",
+      "paidAt": "2026-07-31T05:03:04.022Z"
+    },
+    {
+      "id": "ORD-1785474179618-165",
+      "table": "4",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 57000,
+      "totalCost": 28000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:02:59.618Z",
+      "paidAt": "2026-07-31T05:03:02.050Z"
+    },
+    {
+      "id": "ORD-1785474303395-766",
+      "table": "1",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:05:03.395Z",
+      "paidAt": "2026-07-31T05:09:16.187Z"
+    },
+    {
+      "id": "ORD-1785474310583-156",
+      "table": "3",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:05:10.583Z",
+      "paidAt": "2026-07-31T05:09:01.823Z"
+    },
+    {
+      "id": "ORD-1785474316628-463",
+      "table": "2",
+      "items": [
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        },
+        {
+          "id": "fries-small",
+          "name": "Kartoshka Fri (kichik)",
+          "price": 12000,
+          "qty": 1,
+          "lineTotal": 12000
+        },
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 28000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:05:16.628Z",
+      "paidAt": "2026-07-31T05:09:00.026Z"
+    },
+    {
+      "id": "ORD-1785474322841-45",
+      "table": "4",
+      "items": [
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "fanta",
+          "name": "Fanta 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 36000,
+      "totalCost": 15000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:05:22.841Z",
+      "paidAt": "2026-07-31T05:08:58.361Z"
+    },
+    {
+      "id": "ORD-1785474328908-221",
+      "table": "5",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 82000,
+      "totalCost": 40000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:05:28.908Z",
+      "paidAt": "2026-07-31T05:08:55.998Z"
+    },
+    {
+      "id": "ORD-1785474605685-825",
+      "table": "5",
+      "items": [
+        {
+          "id": "burger-chicken",
+          "name": "Chicken Burger",
+          "price": 24000,
+          "qty": 1,
+          "lineTotal": 24000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 59000,
+      "totalCost": 29000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:05.685Z",
+      "paidAt": "2026-07-31T05:11:15.667Z"
+    },
+    {
+      "id": "ORD-1785474609774-30",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:09.774Z",
+      "paidAt": "2026-07-31T05:11:14.094Z"
+    },
+    {
+      "id": "ORD-1785474613386-887",
+      "table": "1",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        }
+      ],
+      "total": 57000,
+      "totalCost": 28000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:13.386Z",
+      "paidAt": "2026-07-31T05:11:12.723Z"
+    },
+    {
+      "id": "ORD-1785474617046-410",
+      "table": "2",
+      "items": [
+        {
+          "id": "fries-small",
+          "name": "Kartoshka Fri (kichik)",
+          "price": 12000,
+          "qty": 1,
+          "lineTotal": 12000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 32000,
+      "totalCost": 14000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:17.046Z",
+      "paidAt": "2026-07-31T05:11:11.108Z"
+    },
+    {
+      "id": "ORD-1785474623883-985",
+      "table": "3",
+      "items": [
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 103000,
+      "totalCost": 48000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:23.883Z",
+      "paidAt": "2026-07-31T05:11:09.523Z"
+    },
+    {
+      "id": "ORD-1785474648409-4",
+      "table": "3",
+      "items": [
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        }
+      ],
+      "total": 28000,
+      "totalCost": 12000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:10:48.409Z",
+      "paidAt": "2026-07-31T05:11:07.945Z"
+    },
+    {
+      "id": "ORD-1785474661538-289",
+      "table": "3",
+      "items": [
+        {
+          "id": "fanta",
+          "name": "Fanta 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        },
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        },
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 85000,
+      "totalCost": 40000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:11:01.538Z",
+      "paidAt": "2026-07-31T05:11:05.973Z"
+    },
+    {
+      "id": "ORD-1785474729696-37",
+      "table": "3",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 3,
+          "lineTotal": 75000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 2,
+          "lineTotal": 70000
+        },
+        {
+          "id": "ayran",
+          "name": "Ayron 0.5L",
+          "price": 6000,
+          "qty": 3,
+          "lineTotal": 18000
+        },
+        {
+          "id": "sprite",
+          "name": "Sprite 0.5L",
+          "price": 8000,
+          "qty": 2,
+          "lineTotal": 16000
+        },
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 2,
+          "lineTotal": 16000
+        }
+      ],
+      "total": 195000,
+      "totalCost": 91500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:12:09.696Z",
+      "paidAt": "2026-07-31T05:12:27.657Z"
+    },
+    {
+      "id": "ORD-1785474743416-787",
+      "table": "1",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        }
+      ],
+      "total": 57000,
+      "totalCost": 28000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:12:23.416Z",
+      "paidAt": "2026-07-31T05:12:25.673Z"
+    },
+    {
+      "id": "ORD-1785476032841-457",
+      "table": "3",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "fries-small",
+          "name": "Kartoshka Fri (kichik)",
+          "price": 12000,
+          "qty": 1,
+          "lineTotal": 12000
+        }
+      ],
+      "total": 34000,
+      "totalCost": 15000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:33:52.841Z",
+      "paidAt": "2026-07-31T05:34:45.077Z"
+    },
+    {
+      "id": "ORD-1785476045479-68",
+      "table": "3",
+      "items": [
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        },
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 50000,
+      "totalCost": 24000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:34:05.479Z",
+      "paidAt": "2026-07-31T05:34:43.480Z"
+    },
+    {
+      "id": "ORD-1785476070120-240",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:34:30.120Z",
+      "paidAt": "2026-07-31T05:34:41.023Z"
+    },
+    {
+      "id": "ORD-1785476089111-278",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 60000,
+      "totalCost": 30000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:34:49.111Z",
+      "paidAt": "2026-07-31T05:34:52.494Z"
+    },
+    {
+      "id": "ORD-1785476305534-171",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 53000,
+      "totalCost": 26000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:38:25.534Z",
+      "paidAt": "2026-07-31T05:39:11.983Z"
+    },
+    {
+      "id": "ORD-1785476316597-929",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        }
+      ],
+      "total": 63000,
+      "totalCost": 32000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:38:36.597Z",
+      "paidAt": "2026-07-31T05:39:10.513Z"
+    },
+    {
+      "id": "ORD-1785476322046-739",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 53000,
+      "totalCost": 26000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:38:42.046Z",
+      "paidAt": "2026-07-31T05:39:13.711Z"
+    },
+    {
+      "id": "ORD-1785476341551-728",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "water",
+          "name": "Ichimlik suvi 0.5L",
+          "price": 4000,
+          "qty": 1,
+          "lineTotal": 4000
+        },
+        {
+          "id": "sprite",
+          "name": "Sprite 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        }
+      ],
+      "total": 65000,
+      "totalCost": 30500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:39:01.551Z",
+      "paidAt": "2026-07-31T05:39:08.851Z"
+    },
+    {
+      "id": "ORD-1785476363307-338",
+      "table": "4",
+      "items": [
+        {
+          "id": "lavash-beef",
+          "name": "Go'shtli Lavash",
+          "price": 26000,
+          "qty": 2,
+          "lineTotal": 52000
+        },
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 2,
+          "lineTotal": 56000
+        }
+      ],
+      "total": 108000,
+      "totalCost": 54000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:39:23.307Z",
+      "paidAt": "2026-07-31T05:42:03.754Z"
+    },
+    {
+      "id": "ORD-1785476374909-561",
+      "table": "4",
+      "items": [
+        {
+          "id": "lavash-mix",
+          "name": "Mix Lavash",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        },
+        {
+          "id": "lavash-beef",
+          "name": "Go'shtli Lavash",
+          "price": 26000,
+          "qty": 1,
+          "lineTotal": 26000
+        }
+      ],
+      "total": 54000,
+      "totalCost": 27000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:39:34.909Z",
+      "paidAt": "2026-07-31T05:42:01.354Z"
+    },
+    {
+      "id": "ORD-1785476379366-79",
+      "table": "4",
+      "items": [
+        {
+          "id": "fries-small",
+          "name": "Kartoshka Fri (kichik)",
+          "price": 12000,
+          "qty": 1,
+          "lineTotal": 12000
+        },
+        {
+          "id": "fries-big",
+          "name": "Kartoshka Fri (katta)",
+          "price": 18000,
+          "qty": 1,
+          "lineTotal": 18000
+        }
+      ],
+      "total": 30000,
+      "totalCost": 12500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:39:39.366Z",
+      "paidAt": "2026-07-31T05:41:59.331Z"
+    },
+    {
+      "id": "ORD-1785476385950-424",
+      "table": "4",
+      "items": [
+        {
+          "id": "nuggets",
+          "name": "Chicken Nuggets (6 dona)",
+          "price": 20000,
+          "qty": 1,
+          "lineTotal": 20000
+        },
+        {
+          "id": "fries-big",
+          "name": "Kartoshka Fri (katta)",
+          "price": 18000,
+          "qty": 1,
+          "lineTotal": 18000
+        }
+      ],
+      "total": 38000,
+      "totalCost": 16500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:39:45.950Z",
+      "paidAt": "2026-07-31T05:41:57.609Z"
+    },
+    {
+      "id": "ORD-1785476450015-620",
+      "table": "10",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        },
+        {
+          "id": "burger-cheese",
+          "name": "Cheeseburger",
+          "price": 28000,
+          "qty": 1,
+          "lineTotal": 28000
+        }
+      ],
+      "total": 53000,
+      "totalCost": 26000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:40:50.015Z",
+      "paidAt": "2026-07-31T05:41:55.541Z"
+    },
+    {
+      "id": "ORD-1785476534102-434",
+      "table": "10",
+      "items": [
+        {
+          "id": "water",
+          "name": "Ichimlik suvi 0.5L",
+          "price": 4000,
+          "qty": 1,
+          "lineTotal": 4000
+        }
+      ],
+      "total": 4000,
+      "totalCost": 1500,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:42:14.102Z",
+      "paidAt": "2026-07-31T05:42:31.606Z"
+    },
+    {
+      "id": "ORD-1785476539119-301",
+      "table": "10",
+      "items": [
+        {
+          "id": "sprite",
+          "name": "Sprite 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        }
+      ],
+      "total": 8000,
+      "totalCost": 3000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:42:19.119Z",
+      "paidAt": "2026-07-31T05:42:29.912Z"
+    },
+    {
+      "id": "ORD-1785476543079-336",
+      "table": "10",
+      "items": [
+        {
+          "id": "burger-classic",
+          "name": "Classic Burger",
+          "price": 25000,
+          "qty": 1,
+          "lineTotal": 25000
+        }
+      ],
+      "total": 25000,
+      "totalCost": 12000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T05:42:23.079Z",
+      "paidAt": "2026-07-31T05:42:27.892Z"
+    },
+    {
+      "id": "ORD-1785478935053-312",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "lavash-chicken",
+          "name": "Tovuqli Lavash",
+          "price": 22000,
+          "qty": 1,
+          "lineTotal": 22000
+        }
+      ],
+      "total": 57000,
+      "totalCost": 28000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T06:22:15.053Z",
+      "paidAt": "2026-07-31T06:22:28.571Z"
+    },
+    {
+      "id": "ORD-1785478959174-594",
+      "table": "4",
+      "items": [
+        {
+          "id": "burger-double",
+          "name": "Double Burger",
+          "price": 35000,
+          "qty": 1,
+          "lineTotal": 35000
+        },
+        {
+          "id": "cola",
+          "name": "Coca-Cola 0.5L",
+          "price": 8000,
+          "qty": 1,
+          "lineTotal": 8000
+        }
+      ],
+      "total": 43000,
+      "totalCost": 21000,
+      "paymentMethod": "naqd_terminal",
+      "status": "paid",
+      "createdAt": "2026-07-31T06:22:39.174Z",
+      "paidAt": "2026-07-31T06:22:46.918Z"
+    }
+  ],
+  "stats": {
+    "currentYear": 2026,
+    "currentMonth": 7,
+    "totalRevenue": 4531000,
+    "totalCost": 2225000,
+    "totalProfit": 2306000
+  },
+  "archive": []
+}

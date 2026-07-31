@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Fast-Food — Menyu</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; -webkit-tap-highlight-color: transparent; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+  .cat-btn.active { background-color: #f97316; color: white; }
+  .cart-drawer { transform: translateY(100%); transition: transform 0.3s ease; }
+  .cart-drawer.open { transform: translateY(0); }
+  .qty-btn { transition: transform 0.1s ease; }
+  .qty-btn:active { transform: scale(0.9); }
+  @keyframes pulse-badge { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+  .badge-pulse { animation: pulse-badge 0.4s ease; }
+  .card-add-flash { animation: flash-green 0.4s ease; }
+  @keyframes flash-green { 0% { background-color: #dcfce7; } 100% { background-color: white; } }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-28">
+
+  <!-- ============ HEADER ============ -->
+  <header class="bg-gradient-to-r from-orange-500 to-red-500 text-white sticky top-0 z-30 shadow-lg">
+    <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-extrabold tracking-tight">🍔 FAST BURGER</h1>
+        <p class="text-xs text-orange-100">Tez, mazali, issiq!</p>
+      </div>
+      <div id="table-badge" class="bg-white/20 backdrop-blur px-3 py-2 rounded-xl text-center border border-white/30">
+        <div class="text-[10px] uppercase tracking-wider text-orange-100">Stol</div>
+        <div id="table-number" class="text-2xl font-black leading-none">-</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ KATEGORIYA TABLARI ============ -->
+  <div class="sticky top-[76px] z-20 bg-gray-100/95 backdrop-blur pt-3 pb-2 shadow-sm">
+    <div id="category-tabs" class="max-w-2xl mx-auto px-4 flex gap-2 overflow-x-auto no-scrollbar">
+      <!-- JS orqali to'ldiriladi -->
+    </div>
+  </div>
+
+  <!-- ============ XATOLIK: STOL RAQAMI YO'Q ============ -->
+  <div id="no-table-warning" class="hidden max-w-2xl mx-auto px-4 mt-6">
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 text-sm">
+      ⚠️ Stol raqami aniqlanmadi. Iltimos, stoldagi QR-kodni qaytadan skanerlang
+      (manzil oxirida <code class="bg-red-100 px-1 rounded">?table=RAQAM</code> bo'lishi kerak).
+    </div>
+  </div>
+
+  <!-- ============ MENYU RO'YXATI ============ -->
+  <main class="max-w-2xl mx-auto px-4 mt-4">
+    <div id="menu-container" class="space-y-6"></div>
+  </main>
+
+  <!-- ============ FLOATING SAVAT TUGMASI ============ -->
+  <div id="cart-fab" class="hidden fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-40">
+    <button onclick="openCart()" class="w-full bg-gray-900 text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-2xl active:scale-[0.98] transition">
+      <span class="flex items-center gap-2 font-semibold">
+        <span id="cart-fab-count" class="bg-orange-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center badge-pulse">0</span>
+        Savatni ko'rish
+      </span>
+      <span id="cart-fab-total" class="font-bold">0 so'm</span>
+    </button>
+  </div>
+
+  <!-- ============ SAVAT DRAWER (MODAL) ============ -->
+  <div id="cart-overlay" class="hidden fixed inset-0 bg-black/50 z-50" onclick="closeCart()"></div>
+  <div id="cart-drawer" class="cart-drawer hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl max-w-2xl mx-auto max-h-[85vh] flex flex-col shadow-2xl">
+    <div class="p-4 border-b flex items-center justify-between">
+      <h2 class="text-lg font-bold">🛒 Sizning savatingiz</h2>
+      <button onclick="closeCart()" class="text-gray-400 text-2xl leading-none px-2">&times;</button>
+    </div>
+    <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+    <div class="p-4 border-t bg-gray-50 rounded-b-3xl">
+      <div class="flex items-center justify-between mb-2 text-sm text-gray-500">
+        <span>Jami taomlar</span>
+        <span id="cart-total-count">0</span>
+      </div>
+      <div class="flex items-center justify-between mb-4 text-xl font-extrabold">
+        <span>Umumiy summa</span>
+        <span id="cart-total-price">0 so'm</span>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl px-4 py-3 mb-3 flex items-center gap-2 text-sm text-gray-600">
+        <span>💵</span>
+        <span>To'lov usuli: <b>Naqd pul / Terminal</b> (kassada to'laysiz)</span>
+      </div>
+      <button id="submit-order-btn" onclick="submitOrder()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-[0.98] transition disabled:opacity-50">
+        Buyurtma berish
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ BUYURTMA HOLATI EKRANI (TO'LIQ EKRAN) ============ -->
+  <div id="status-screen" class="hidden fixed inset-0 bg-white z-[60] flex flex-col items-center justify-center px-6 text-center">
+    <div id="status-icon" class="text-7xl mb-4">✅</div>
+    <h2 id="status-title" class="text-2xl font-extrabold mb-2">Buyurtma qabul qilindi!</h2>
+    <p id="status-desc" class="text-gray-500 mb-6">Kassa buyurtmangizni ko'rib chiqmoqda. Iltimos kutib turing, hozir kassaga to'lov qilasiz.</p>
+    <div class="bg-gray-50 border rounded-2xl p-4 w-full max-w-sm mb-6">
+      <div class="flex justify-between text-sm text-gray-500 mb-1"><span>Stol</span><span id="status-table" class="font-semibold text-gray-800">-</span></div>
+      <div class="flex justify-between text-sm text-gray-500"><span>Jami summa</span><span id="status-total" class="font-semibold text-gray-800">-</span></div>
+    </div>
+    <button onclick="newOrder()" class="text-orange-500 font-semibold underline">Yangi buyurtma berish</button>
+  </div>
+
+  <script>
+    // ==========================================================================
+    //  URL'DAN STOL RAQAMINI O'QISH:  /menu?table=4
+    // ==========================================================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableNumber = urlParams.get('table');
+
+    if (!tableNumber) {
+      document.getElementById('no-table-warning').classList.remove('hidden');
+    } else {
+      document.getElementById('table-number').textContent = tableNumber;
+    }
+
+    // ==========================================================================
+    //  SOCKET.IO ULANISHI — mijoz o'z stoli xonasiga qo'shiladi
+    // ==========================================================================
+    const socket = io();
+    if (tableNumber) {
+      socket.emit('join-table', tableNumber);
+    }
+
+    let currentOrderId = null;
+
+    socket.on('order-paid', (order) => {
+      if (order.id === currentOrderId) {
+        showStatusScreen({
+          icon: '🎉',
+          title: "To'lov qabul qilindi!",
+          desc: "Rahmat! Buyurtmangiz tayyorlanmoqda. Yoqimli ishtaha!",
+          table: order.table,
+          total: order.total,
+        });
+      }
+    });
+
+    socket.on('order-cancelled', (order) => {
+      if (order.id === currentOrderId) {
+        showStatusScreen({
+          icon: '⚠️',
+          title: 'Buyurtma bekor qilindi',
+          desc: 'Savol bo\'lsa, kassaga murojaat qiling.',
+          table: order.table,
+          total: order.total,
+        });
+      }
+    });
+
+    // ==========================================================================
+    //  MENYUNI SERVERDAN OLIB, KATEGORIYALARGA AJRATIB CHIQARISH
+    // ==========================================================================
+    let MENU = [];
+    let cart = {}; // { itemId: qty }
+    let activeCategory = null;
+
+    async function loadMenu() {
+      const res = await fetch('/api/menu');
+      MENU = await res.json();
+      buildCategoryTabs();
+      renderMenu();
+    }
+
+    function buildCategoryTabs() {
+      const categories = [...new Set(MENU.map((i) => i.category))];
+      activeCategory = categories[0];
+      const tabsEl = document.getElementById('category-tabs');
+      tabsEl.innerHTML = categories
+        .map(
+          (cat) => `
+        <button class="cat-btn ${cat === activeCategory ? 'active' : ''} whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-white border border-gray-200 text-gray-600 shadow-sm"
+                onclick="selectCategory('${cat}')" id="tab-${cat}">
+          ${cat}
+        </button>`
+        )
+        .join('');
+    }
+
+    function selectCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach((btn) => btn.classList.remove('active'));
+      document.getElementById('tab-' + cat).classList.add('active');
+      const el = document.getElementById('section-' + cat);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function formatMoney(n) {
+      return n.toLocaleString('uz-UZ') + " so'm";
+    }
+
+    function renderMenu() {
+      const categories = [...new Set(MENU.map((i) => i.category))];
+      const container = document.getElementById('menu-container');
+      container.innerHTML = categories
+        .map(
+          (cat) => `
+        <section id="section-${cat}">
+          <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span class="w-1.5 h-6 bg-orange-500 rounded-full"></span> ${cat}
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${MENU.filter((i) => i.category === cat).map((item) => renderItemCard(item)).join('')}
+          </div>
+        </section>`
+        )
+        .join('');
+    }
+
+    function renderItemCard(item) {
+      const qty = cart[item.id] || 0;
+      return `
+        <div id="card-${item.id}" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col">
+          <div class="flex items-start gap-3 mb-2">
+            <div class="text-4xl leading-none">${item.emoji}</div>
+            <div class="flex-1">
+              <h4 class="font-bold text-gray-800 leading-tight">${item.name}</h4>
+              <p class="text-xs text-gray-400 mt-0.5">${item.description || ''}</p>
+            </div>
+          </div>
+          <div class="mt-auto flex items-center justify-between pt-2">
+            <span class="font-extrabold text-orange-600">${formatMoney(item.price)}</span>
+            ${
+              qty === 0
+                ? `<button onclick="addToCart('${item.id}')" class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl active:scale-95 transition qty-btn">+ Qo'shish</button>`
+                : `<div class="flex items-center gap-2 bg-gray-100 rounded-xl px-1">
+                     <button onclick="removeFromCart('${item.id}')" class="qty-btn w-8 h-8 rounded-lg bg-white shadow text-gray-700 font-bold">-</button>
+                     <span class="w-6 text-center font-bold">${qty}</span>
+                     <button onclick="addToCart('${item.id}')" class="qty-btn w-8 h-8 rounded-lg bg-white shadow text-gray-700 font-bold">+</button>
+                   </div>`
+            }
+          </div>
+        </div>`;
+    }
+
+    function addToCart(id) {
+      cart[id] = (cart[id] || 0) + 1;
+      refreshItemCard(id);
+      refreshCartUI();
+    }
+
+    function removeFromCart(id) {
+      if (!cart[id]) return;
+      cart[id]--;
+      if (cart[id] <= 0) delete cart[id];
+      refreshItemCard(id);
+      refreshCartUI();
+    }
+
+    function refreshItemCard(id) {
+      const item = MENU.find((i) => i.id === id);
+      const cardEl = document.getElementById('card-' + id);
+      if (cardEl && item) {
+        cardEl.outerHTML = renderItemCard(item);
+        document.getElementById('card-' + id).classList.add('card-add-flash');
+      }
+    }
+
+    function cartCount() {
+      return Object.values(cart).reduce((a, b) => a + b, 0);
+    }
+
+    function cartTotal() {
+      return Object.entries(cart).reduce((sum, [id, qty]) => {
+        const item = MENU.find((i) => i.id === id);
+        return sum + (item ? item.price * qty : 0);
+      }, 0);
+    }
+
+    function refreshCartUI() {
+      const count = cartCount();
+      const total = cartTotal();
+
+      const fab = document.getElementById('cart-fab');
+      if (count > 0) {
+        fab.classList.remove('hidden');
+      } else {
+        fab.classList.add('hidden');
+        closeCart();
+      }
+
+      document.getElementById('cart-fab-count').textContent = count;
+      document.getElementById('cart-fab-count').classList.add('badge-pulse');
+      document.getElementById('cart-fab-total').textContent = formatMoney(total);
+      document.getElementById('cart-total-count').textContent = count;
+      document.getElementById('cart-total-price').textContent = formatMoney(total);
+
+      renderCartItems();
+    }
+
+    function renderCartItems() {
+      const container = document.getElementById('cart-items');
+      const entries = Object.entries(cart);
+
+      if (entries.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-400 py-8">Savat bo'sh</p>`;
+        return;
+      }
+
+      container.innerHTML = entries
+        .map(([id, qty]) => {
+          const item = MENU.find((i) => i.id === id);
+          if (!item) return '';
+          return `
+          <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+            <div class="text-2xl">${item.emoji}</div>
+            <div class="flex-1">
+              <div class="font-semibold text-gray-800 text-sm">${item.name}</div>
+              <div class="text-xs text-gray-400">${formatMoney(item.price)} x ${qty}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="removeFromCart('${id}'); renderCartItems(); refreshCartUI();" class="w-7 h-7 rounded-lg bg-white shadow text-gray-700 font-bold">-</button>
+              <span class="w-5 text-center font-bold text-sm">${qty}</span>
+              <button onclick="addToCart('${id}'); renderCartItems();" class="w-7 h-7 rounded-lg bg-white shadow text-gray-700 font-bold">+</button>
+            </div>
+          </div>`;
+        })
+        .join('');
+    }
+
+    function openCart() {
+      document.getElementById('cart-overlay').classList.remove('hidden');
+      const drawer = document.getElementById('cart-drawer');
+      drawer.classList.remove('hidden');
+      requestAnimationFrame(() => drawer.classList.add('open'));
+      renderCartItems();
+    }
+
+    function closeCart() {
+      const drawer = document.getElementById('cart-drawer');
+      drawer.classList.remove('open');
+      document.getElementById('cart-overlay').classList.add('hidden');
+      setTimeout(() => drawer.classList.add('hidden'), 300);
+    }
+
+    // ==========================================================================
+    //  BUYURTMANI SERVERGA YUBORISH
+    // ==========================================================================
+    async function submitOrder() {
+      if (!tableNumber) {
+        alert('Stol raqami aniqlanmadi. QR-kodni qaytadan skanerlang.');
+        return;
+      }
+      if (cartCount() === 0) return;
+
+      const btn = document.getElementById('submit-order-btn');
+      btn.disabled = true;
+      btn.textContent = 'Yuborilmoqda...';
+
+      const items = Object.entries(cart).map(([id, qty]) => ({ id, qty }));
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table: tableNumber, items }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Xatolik yuz berdi');
+        }
+
+        const order = await res.json();
+        currentOrderId = order.id;
+
+        closeCart();
+        cart = {};
+        refreshCartUI();
+        renderMenu();
+
+        showStatusScreen({
+          icon: '✅',
+          title: 'Buyurtma qabul qilindi!',
+          desc: 'Kassa buyurtmangizni ko\'rib chiqmoqda. Kassaga borib naqd pul yoki terminal orqali to\'lov qiling.',
+          table: order.table,
+          total: order.total,
+        });
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Buyurtma berish';
+      }
+    }
+
+    function showStatusScreen({ icon, title, desc, table, total }) {
+      document.getElementById('status-icon').textContent = icon;
+      document.getElementById('status-title').textContent = title;
+      document.getElementById('status-desc').textContent = desc;
+      document.getElementById('status-table').textContent = table;
+      document.getElementById('status-total').textContent = formatMoney(total);
+      document.getElementById('status-screen').classList.remove('hidden');
+    }
+
+    function newOrder() {
+      document.getElementById('status-screen').classList.add('hidden');
+      currentOrderId = null;
+    }
+
+    // Ishga tushirish
+    loadMenu();
+  </script>
+</body>
+</html>
