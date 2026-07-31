@@ -44,7 +44,10 @@ app.use(express.json());
 //  express.static socket.io.js kabi kutubxona fayllarini ham to'g'ri MIME-type
 //  bilan uzatishi uchun bu qator kerak (masalan rasm, css fayllar bo'lsa).
 // ----------------------------------------------------------------------------------
-app.use(express.static(__dirname));
+// MUHIM: { index: false } — bu bo'lmasa, express.static avtomat ravishda
+// "/" manzili uchun index.html'ni to'g'ridan-to'g'ri ko'rsatib yuboradi va
+// pastdagi app.get('/') orqali /menu?table=1'ga yo'naltirish ISHLAMAY QOLADI.
+app.use(express.static(__dirname, { index: false }));
 
 // ==================================================================================
 //  MA'LUMOTLAR BAZASI (HOZIRGI HOLAT: JSON FAYL — db.json)
