@@ -158,37 +158,60 @@ function checkMonthRollover(db) {
 
 // ==================================================================================
 //  FAST-FOOD MENYUSI
+//  MUHIM O'ZGARISH: Menyu endi kodning ichida emas, "menu.json" faylida saqlanadi.
+//  Bu admin panel orqali (kodga tegmasdan) taom qo'shish, narxini o'zgartirish va
+//  o'chirish imkonini beradi — har xil fast-food joyi o'z menyusini erkin sozlaydi.
+//
 //  "cost" (tannarx) maydoni faqat sof foyda hisobini yuritish uchun ishlatiladi va
 //  mijozga ko'rsatiladigan /api/menu javobida YASHIRIB qo'yiladi (xavfsizlik uchun).
-//  Narxlarni va taomlarni bemalol o'zgartiring/ko'paytiring.
 // ==================================================================================
-const MENU = [
-  // ---------------- BURGERLAR ----------------
-  { id: 'burger-classic', category: 'Burgerlar', name: 'Classic Burger', price: 25000, cost: 12000, emoji: '🍔', description: 'Mol go\'shti, pomidor, salat, maxsus sous' },
-  { id: 'burger-cheese', category: 'Burgerlar', name: 'Cheeseburger', price: 28000, cost: 14000, emoji: '🍔', description: 'Mol go\'shti, erigan pishloq, tuzlangan bodring' },
-  { id: 'burger-double', category: 'Burgerlar', name: 'Double Burger', price: 35000, cost: 18000, emoji: '🍔', description: 'Ikki qavat go\'sht, ikki qavat pishloq' },
-  { id: 'burger-chicken', category: 'Burgerlar', name: 'Chicken Burger', price: 24000, cost: 11000, emoji: '🍗', description: 'Qarsildoq tovuq file, salat, sous' },
+const MENU_PATH = path.join(__dirname, 'menu.json');
 
-  // ---------------- LAVASH ----------------
-  { id: 'lavash-chicken', category: 'Lavash', name: 'Tovuqli Lavash', price: 22000, cost: 10000, emoji: '🌯', description: 'Tovuq go\'shti, sabzavotlar, sous' },
-  { id: 'lavash-beef', category: 'Lavash', name: "Go'shtli Lavash", price: 26000, cost: 13000, emoji: '🌯', description: "Mol go'shti, sabzavotlar, achchiq sous" },
-  { id: 'lavash-mix', category: 'Lavash', name: 'Mix Lavash', price: 28000, cost: 14000, emoji: '🌯', description: "Tovuq va mol go'shti aralashmasi" },
+function readMenu() {
+  if (!fs.existsSync(MENU_PATH)) {
+    fs.writeFileSync(MENU_PATH, JSON.stringify([], null, 2));
+    return [];
+  }
+  const raw = fs.readFileSync(MENU_PATH, 'utf-8');
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('menu.json faylini o\'qishda xato:', e);
+    return [];
+  }
+}
 
-  // ---------------- QO'SHIMCHA TAOMLAR ----------------
-  { id: 'fries-small', category: "Qo'shimcha", name: 'Kartoshka Fri (kichik)', price: 12000, cost: 5000, emoji: '🍟', description: 'Qarsildoq kartoshka fri' },
-  { id: 'fries-big', category: "Qo'shimcha", name: 'Kartoshka Fri (katta)', price: 18000, cost: 7500, emoji: '🍟', description: 'Qarsildoq kartoshka fri, katta portsiya' },
-  { id: 'nuggets', category: "Qo'shimcha", name: 'Chicken Nuggets (6 dona)', price: 20000, cost: 9000, emoji: '🍗', description: 'Qarsildoq tovuq nagetslari' },
-
-  // ---------------- ICHIMLIKLAR ----------------
-  { id: 'cola', category: 'Ichimliklar', name: 'Coca-Cola 0.5L', price: 8000, cost: 3000, emoji: '🥤', description: 'Sovutilgan gazli ichimlik' },
-  { id: 'fanta', category: 'Ichimliklar', name: 'Fanta 0.5L', price: 8000, cost: 3000, emoji: '🥤', description: 'Sovutilgan gazli ichimlik' },
-  { id: 'sprite', category: 'Ichimliklar', name: 'Sprite 0.5L', price: 8000, cost: 3000, emoji: '🥤', description: 'Sovutilgan gazli ichimlik' },
-  { id: 'water', category: 'Ichimliklar', name: 'Ichimlik suvi 0.5L', price: 4000, cost: 1500, emoji: '💧', description: 'Toza ichimlik suvi' },
-  { id: 'ayran', category: 'Ichimliklar', name: 'Ayron 0.5L', price: 6000, cost: 2500, emoji: '🥛', description: "An'anaviy ayron" },
-];
+function writeMenu(menu) {
+  fs.writeFileSync(MENU_PATH, JSON.stringify(menu, null, 2));
+}
 
 function findMenuItem(id) {
-  return MENU.find((item) => item.id === id);
+  return readMenu().find((item) => item.id === id);
+}
+
+// Taom nomidan URL-friendly ID generatsiya qilish (masalan "Osh Toshkent" -> "osh-toshkent")
+function slugify(text) {
+  const translit = {
+    'ў': 'u', 'қ': 'q', 'ғ': 'gh', 'ҳ': 'h', 'ш': 'sh', 'ч': 'ch', "'": '',
+  };
+  let result = text.toLowerCase();
+  Object.keys(translit).forEach((k) => { result = result.split(k).join(translit[k]); });
+  result = result
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+  return result || 'item';
+}
+
+function generateMenuItemId(name, menu) {
+  const base = slugify(name);
+  let id = base;
+  let counter = 2;
+  while (menu.find((item) => item.id === id)) {
+    id = base + '-' + counter;
+    counter++;
+  }
+  return id;
 }
 
 // ==================================================================================
@@ -219,10 +242,10 @@ app.get('/', (req, res) => {
   res.redirect('/menu?table=1');
 });
 
-// --------------------------- API: MENYUNI OLISH ---------------------------
+// --------------------------- API: MENYUNI OLISH (mijoz uchun) ---------------------------
 // Mijoz tomoniga "cost" (tannarx) maydoni YUBORILMAYDI — bu ichki ma'lumot.
 app.get('/api/menu', (req, res) => {
-  const publicMenu = MENU.map(({ id, category, name, price, emoji, description }) => ({
+  const publicMenu = readMenu().map(({ id, category, name, price, emoji, description }) => ({
     id,
     category,
     name,
@@ -231,6 +254,84 @@ app.get('/api/menu', (req, res) => {
     description,
   }));
   res.json(publicMenu);
+});
+
+// =====================================================================================
+//  ADMIN UCHUN MENYU BOSHQARUVI (Qo'shish / Tahrirlash / O'chirish)
+//  Bu API'lar admin panelidagi "Menyuni boshqarish" bo'limi tomonidan ishlatiladi.
+//  Bu yerda "cost" (tannarx) maydoni ham qaytariladi, chunki bu ichki boshqaruv paneli.
+// =====================================================================================
+
+// To'liq menyuni olish (tannarx bilan birga) — admin panel uchun
+app.get('/api/admin/menu', (req, res) => {
+  res.json(readMenu());
+});
+
+// Yangi taom qo'shish
+app.post('/api/admin/menu', (req, res) => {
+  const { category, name, price, cost, emoji, description } = req.body;
+
+  if (!category || !name || price === undefined) {
+    return res.status(400).json({ error: 'Kategoriya, nom va narx to\'ldirilishi shart.' });
+  }
+
+  const menu = readMenu();
+  const newItem = {
+    id: generateMenuItemId(name, menu),
+    category: String(category).trim(),
+    name: String(name).trim(),
+    price: Math.max(0, parseInt(price, 10) || 0),
+    cost: Math.max(0, parseInt(cost, 10) || 0),
+    emoji: emoji && String(emoji).trim() ? String(emoji).trim() : '🍽️',
+    description: description ? String(description).trim() : '',
+  };
+
+  menu.push(newItem);
+  writeMenu(menu);
+
+  // Barcha ochiq mijoz sahifalariga menyu yangilanganini bildiramiz (real-time)
+  io.emit('menu-updated');
+
+  res.status(201).json(newItem);
+});
+
+// Mavjud taomni tahrirlash
+app.put('/api/admin/menu/:id', (req, res) => {
+  const { id } = req.params;
+  const { category, name, price, cost, emoji, description } = req.body;
+
+  const menu = readMenu();
+  const item = menu.find((i) => i.id === id);
+  if (!item) {
+    return res.status(404).json({ error: 'Taom topilmadi.' });
+  }
+
+  if (category !== undefined) item.category = String(category).trim();
+  if (name !== undefined) item.name = String(name).trim();
+  if (price !== undefined) item.price = Math.max(0, parseInt(price, 10) || 0);
+  if (cost !== undefined) item.cost = Math.max(0, parseInt(cost, 10) || 0);
+  if (emoji !== undefined) item.emoji = String(emoji).trim() || '🍽️';
+  if (description !== undefined) item.description = String(description).trim();
+
+  writeMenu(menu);
+  io.emit('menu-updated');
+
+  res.json(item);
+});
+
+// Taomni o'chirish
+app.delete('/api/admin/menu/:id', (req, res) => {
+  const { id } = req.params;
+  const menu = readMenu();
+  const index = menu.findIndex((i) => i.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Taom topilmadi.' });
+  }
+  menu.splice(index, 1);
+  writeMenu(menu);
+  io.emit('menu-updated');
+
+  res.json({ success: true });
 });
 
 // --------------------------- API: BUYURTMA YARATISH ---------------------------
