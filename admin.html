@@ -47,6 +47,23 @@
 
   <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
 
+    <!-- ============ MENYUNI BOSHQARISH ============ -->
+    <section>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
+          🍽️ Menyuni boshqarish
+        </h2>
+        <button onclick="openMenuForm()" class="bg-purple-500 hover:bg-purple-600 text-white text-sm font-bold px-4 py-2 rounded-xl active:scale-95 transition">
+          + Yangi taom qo'shish
+        </button>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">
+        ℹ️ Bu yerda qo'shgan/o'zgartirgan/o'chirgan har qanday taomingiz mijoz menyusida (barcha ochiq sahifalarda) LAHZADA yangilanadi.
+      </p>
+      <div id="menu-manage-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </section>
+
     <!-- ============ YANGI BUYURTMALAR ============ -->
     <section>
       <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -136,6 +153,50 @@
   <!-- ============ CHOP ETISH UCHUN YASHIRIN CHEK (80mm) ============ -->
   <div id="print-area"></div>
 
+  <!-- ============ TAOM QO'SHISH / TAHRIRLASH MODAL OYNASI ============ -->
+  <div id="menu-form-overlay" class="hidden fixed inset-0 bg-black/50 z-[70] flex items-center justify-center px-4" onclick="closeMenuForm(event)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white rounded-t-2xl">
+        <h3 id="menu-form-title" class="text-lg font-bold">Yangi taom qo'shish</h3>
+        <button onclick="closeMenuForm()" class="text-gray-400 text-2xl leading-none px-2">&times;</button>
+      </div>
+      <div class="p-4 space-y-3">
+        <input type="hidden" id="menu-form-id" />
+        <div>
+          <label class="text-xs font-semibold text-gray-500">Kategoriya (masalan: Osh, Pizza, Somsa...)</label>
+          <input id="menu-form-category" list="category-list" type="text" placeholder="Burgerlar" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
+          <datalist id="category-list"></datalist>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500">Taom nomi</label>
+          <input id="menu-form-name" type="text" placeholder="Masalan: Osh Toshkentcha" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-semibold text-gray-500">Sotish narxi (so'm)</label>
+            <input id="menu-form-price" type="number" min="0" step="500" placeholder="25000" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500">Tannarx (so'm)</label>
+            <input id="menu-form-cost" type="number" min="0" step="500" placeholder="12000" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500">Emoji (ixtiyoriy, masalan 🍔 🍕 🍜)</label>
+          <input id="menu-form-emoji" type="text" placeholder="🍔" maxlength="4" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500">Tavsif (ixtiyoriy)</label>
+          <textarea id="menu-form-description" rows="2" placeholder="Taom haqida qisqacha ma'lumot" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400"></textarea>
+        </div>
+      </div>
+      <div class="p-4 border-t flex gap-2 sticky bottom-0 bg-white rounded-b-2xl">
+        <button onclick="closeMenuForm()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl">Bekor qilish</button>
+        <button id="menu-form-submit" onclick="submitMenuForm()" class="flex-[2] bg-purple-500 hover:bg-purple-600 text-white font-bold py-2.5 rounded-xl">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const MONTH_NAMES = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
 
@@ -208,6 +269,144 @@
       renderStats(stats);
       renderArchive(archive);
     });
+
+    socket.on('menu-updated', () => {
+      loadMenuManage();
+    });
+
+    // ==========================================================================
+    //  MENYUNI BOSHQARISH (Qo'shish / Tahrirlash / O'chirish)
+    // ==========================================================================
+    let adminMenu = [];
+
+    async function loadMenuManage() {
+      const res = await fetch('/api/admin/menu');
+      adminMenu = await res.json();
+      renderMenuManage();
+    }
+
+    function renderMenuManage() {
+      const container = document.getElementById('menu-manage-container');
+      // Kategoriyalar ro'yxatini datalist uchun tayyorlaymiz
+      const categories = [...new Set(adminMenu.map((i) => i.category))];
+      document.getElementById('category-list').innerHTML = categories
+        .map((c) => `<option value="${c}"></option>`)
+        .join('');
+
+      if (adminMenu.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-sm">Menyu bo'sh. "+ Yangi taom qo'shish" tugmasini bosing.</p>`;
+        return;
+      }
+
+      container.innerHTML = adminMenu
+        .map((item) => {
+          const profit = item.price - item.cost;
+          return `
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div class="flex items-start gap-3 mb-2">
+            <div class="text-3xl">${item.emoji}</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-purple-500 font-semibold">${item.category}</div>
+              <div class="font-bold text-gray-800 truncate">${item.name}</div>
+            </div>
+          </div>
+          <div class="text-sm text-gray-500 space-y-0.5 mb-3">
+            <div class="flex justify-between"><span>Sotish narxi</span><span class="font-semibold text-gray-800">${formatMoney(item.price)}</span></div>
+            <div class="flex justify-between"><span>Tannarx</span><span class="text-gray-400">${formatMoney(item.cost)}</span></div>
+            <div class="flex justify-between"><span>Foyda (1 dona)</span><span class="font-semibold text-green-600">${formatMoney(profit)}</span></div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick='openMenuForm(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-xl">✏️ Tahrirlash</button>
+            <button onclick="deleteMenuItem('${item.id}')" class="flex-1 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold py-2 rounded-xl">🗑️ O'chirish</button>
+          </div>
+        </div>`;
+        })
+        .join('');
+    }
+
+    function openMenuForm(item) {
+      document.getElementById('menu-form-overlay').classList.remove('hidden');
+      if (item && item.id) {
+        document.getElementById('menu-form-title').textContent = "Taomni tahrirlash";
+        document.getElementById('menu-form-id').value = item.id;
+        document.getElementById('menu-form-category').value = item.category;
+        document.getElementById('menu-form-name').value = item.name;
+        document.getElementById('menu-form-price').value = item.price;
+        document.getElementById('menu-form-cost').value = item.cost;
+        document.getElementById('menu-form-emoji').value = item.emoji;
+        document.getElementById('menu-form-description').value = item.description || '';
+      } else {
+        document.getElementById('menu-form-title').textContent = "Yangi taom qo'shish";
+        document.getElementById('menu-form-id').value = '';
+        document.getElementById('menu-form-category').value = '';
+        document.getElementById('menu-form-name').value = '';
+        document.getElementById('menu-form-price').value = '';
+        document.getElementById('menu-form-cost').value = '';
+        document.getElementById('menu-form-emoji').value = '';
+        document.getElementById('menu-form-description').value = '';
+      }
+    }
+
+    function closeMenuForm(e) {
+      if (e && e.target !== document.getElementById('menu-form-overlay')) return;
+      document.getElementById('menu-form-overlay').classList.add('hidden');
+    }
+
+    async function submitMenuForm() {
+      const id = document.getElementById('menu-form-id').value;
+      const category = document.getElementById('menu-form-category').value.trim();
+      const name = document.getElementById('menu-form-name').value.trim();
+      const price = document.getElementById('menu-form-price').value;
+      const cost = document.getElementById('menu-form-cost').value;
+      const emoji = document.getElementById('menu-form-emoji').value.trim();
+      const description = document.getElementById('menu-form-description').value.trim();
+
+      if (!category || !name || price === '') {
+        alert("Kategoriya, taom nomi va narxini kiriting.");
+        return;
+      }
+
+      const payload = { category, name, price, cost: cost || 0, emoji, description };
+
+      try {
+        let res;
+        if (id) {
+          res = await fetch(`/api/admin/menu/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await fetch('/api/admin/menu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Xatolik');
+        }
+        closeMenuForm();
+        loadMenuManage();
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      }
+    }
+
+    async function deleteMenuItem(id) {
+      if (!confirm("Bu taomni menyudan o'chirishga ishonchingiz komilmi?")) return;
+      try {
+        const res = await fetch(`/api/admin/menu/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Xatolik');
+        }
+        loadMenuManage();
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      }
+    }
 
     // ==========================================================================
     //  HOLAT (STATE)
@@ -393,6 +592,7 @@
     // Ishga tushirish
     loadOrders();
     loadStats();
+    loadMenuManage();
   </script>
 </body>
 </html>
