@@ -64,6 +64,33 @@
       <div id="menu-manage-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
     </section>
 
+    <!-- ============ QO'LDA BUYURTMA KIRITISH ============ -->
+    <section>
+      <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="w-1.5 h-6 bg-teal-500 rounded-full"></span>
+        ➕ Qo'lda buyurtma kiritish
+      </h2>
+      <p class="text-xs text-gray-400 mb-3">
+        ℹ️ Telefoni yo'q yoki QR-kodni skanerlay olmagan mijozlar uchun — kassir shu yerdan ularning o'rniga buyurtma kiritadi.
+      </p>
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <div class="mb-4 max-w-xs">
+          <label class="text-xs font-semibold text-gray-500">Stol raqami</label>
+          <input id="manual-order-table" type="text" placeholder="Masalan: 5" class="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400" />
+        </div>
+        <div id="manual-order-menu" class="space-y-3"></div>
+        <div class="mt-4 flex items-center justify-between border-t pt-4">
+          <div>
+            <div class="text-xs text-gray-400">Jami taomlar: <span id="manual-cart-count">0</span></div>
+            <div class="text-xl font-extrabold text-gray-800">Jami: <span id="manual-cart-total">0 so'm</span></div>
+          </div>
+          <button onclick="submitManualOrder()" class="bg-teal-500 hover:bg-teal-600 text-white font-bold px-6 py-3 rounded-xl active:scale-[0.98] transition">
+            Buyurtma yaratish
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ YANGI BUYURTMALAR ============ -->
     <section>
       <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -283,6 +310,101 @@
       const res = await fetch('/api/admin/menu');
       adminMenu = await res.json();
       renderMenuManage();
+      renderManualOrderMenu();
+    }
+
+    // ==========================================================================
+    //  QO'LDA BUYURTMA KIRITISH (telefoni yo'q mijozlar uchun)
+    // ==========================================================================
+    let manualCart = {}; // { itemId: qty }
+
+    function renderManualOrderMenu() {
+      const container = document.getElementById('manual-order-menu');
+      if (!container) return;
+      const categories = [...new Set(adminMenu.map((i) => i.category))];
+
+      if (categories.length === 0) {
+        container.innerHTML = `<p class="text-gray-400 text-sm">Menyu bo'sh. Avval yuqorida taom qo'shing.</p>`;
+        return;
+      }
+
+      container.innerHTML = categories
+        .map(
+          (cat) => `
+        <div>
+          <div class="text-xs font-bold text-gray-400 uppercase mb-1.5">${cat}</div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            ${adminMenu.filter((i) => i.category === cat).map((item) => renderManualItemCard(item)).join('')}
+          </div>
+        </div>`
+        )
+        .join('');
+    }
+
+    function renderManualItemCard(item) {
+      const qty = manualCart[item.id] || 0;
+      return `
+        <div class="border ${qty > 0 ? 'border-teal-300 bg-teal-50' : 'border-gray-200 bg-gray-50'} rounded-xl p-2 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold truncate">${item.emoji} ${item.name}</div>
+            <div class="text-xs text-gray-400">${formatMoney(item.price)}</div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick="manualQtyChange('${item.id}', -1)" class="w-6 h-6 rounded-lg bg-white shadow text-xs font-bold text-gray-600">-</button>
+            <span class="w-5 text-center text-xs font-bold">${qty}</span>
+            <button onclick="manualQtyChange('${item.id}', 1)" class="w-6 h-6 rounded-lg bg-white shadow text-xs font-bold text-gray-600">+</button>
+          </div>
+        </div>`;
+    }
+
+    function manualQtyChange(id, delta) {
+      manualCart[id] = Math.max(0, (manualCart[id] || 0) + delta);
+      if (manualCart[id] === 0) delete manualCart[id];
+      renderManualOrderMenu();
+      updateManualCartSummary();
+    }
+
+    function updateManualCartSummary() {
+      const count = Object.values(manualCart).reduce((a, b) => a + b, 0);
+      const total = Object.entries(manualCart).reduce((sum, [id, qty]) => {
+        const item = adminMenu.find((i) => i.id === id);
+        return sum + (item ? item.price * qty : 0);
+      }, 0);
+      document.getElementById('manual-cart-count').textContent = count;
+      document.getElementById('manual-cart-total').textContent = formatMoney(total);
+    }
+
+    async function submitManualOrder() {
+      const table = document.getElementById('manual-order-table').value.trim();
+      if (!table) {
+        alert("Iltimos, stol raqamini kiriting.");
+        return;
+      }
+      const items = Object.entries(manualCart).map(([id, qty]) => ({ id, qty }));
+      if (items.length === 0) {
+        alert("Kamida bitta taom tanlang.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ table, items }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Xatolik');
+        }
+
+        manualCart = {};
+        document.getElementById('manual-order-table').value = '';
+        renderManualOrderMenu();
+        updateManualCartSummary();
+        // Buyurtma "Yangi buyurtmalar" ro'yxatiga socket orqali avtomat qo'shiladi
+      } catch (e) {
+        alert('Xatolik: ' + e.message);
+      }
     }
 
     function renderMenuManage() {
