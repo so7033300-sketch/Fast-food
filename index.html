@@ -221,10 +221,13 @@
 
     function renderItemCard(item) {
       const qty = cart[item.id] || 0;
+      const thumb = item.image
+        ? `<img src="${item.image}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0" />`
+        : `<div class="text-4xl leading-none">${item.emoji}</div>`;
       return `
         <div id="card-${item.id}" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col">
           <div class="flex items-start gap-3 mb-2">
-            <div class="text-4xl leading-none">${item.emoji}</div>
+            ${thumb}
             <div class="flex-1">
               <h4 class="font-bold text-gray-800 leading-tight">${item.name}</h4>
               <p class="text-xs text-gray-400 mt-0.5">${item.description || ''}</p>
