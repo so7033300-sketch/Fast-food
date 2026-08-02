@@ -1,13 +1,6 @@
 // ==================================================================================
 //  FAST-FOOD QR BUYURTMA TIZIMI — BACKEND SERVER
-//  Node.js + Express + Socket.io + MongoDB (yoki JSON fayl-baza — avtomat tanlanadi)
-//
-//  MUHIM: Agar muhit o'zgaruvchisi MONGODB_URI mavjud bo'lsa (masalan Render'da
-//  Environment bo'limida sozlangan bo'lsa), tizim MongoDB'ni ishlatadi — bu holda
-//  ma'lumotlar HECH QACHON yo'qolmaydi (server qayta ishga tushsa ham).
-//  Agar MONGODB_URI YO'Q bo'lsa (masalan lokal kompyuteringizda sinab ko'rayotganda),
-//  tizim avtomat ravishda oddiy JSON-fayllarga (db.json, menu.json, ombor.json)
-//  yozib turadi — bu holda qo'shimcha sozlashsiz darhol ishga tushadi.
+//  Node.js + Express + Socket.io + JSON fayl-baza
 //
 //  Ushbu server quyidagilarni ta'minlaydi:
 //   1) Mijoz uchun QR-menyu sahifasini va menyu ma'lumotlarini taqdim etadi.
@@ -15,6 +8,19 @@
 //   3) Kassir to'lovni tasdiqlagach, statistika (tushum/tannarx/foyda) avtomat yangilanadi.
 //   4) Har oy boshlanganda joriy oy statistikasi avtomat arxivga o'tkaziladi va 0'dan boshlanadi.
 //   5) Ombordan (inventar) avtomat ayirish va kam qolganda ogohlantirish.
+//
+//  MA'LUMOTLAR DOIMIY SAQLANISHI HAQIDA (MUHIM):
+//  Render'ning bepul tarifida fayl tizimi vaqtinchalik (ephemeral) — server qayta
+//  ishga tushganda barcha fayllar o'chib ketadi. Buning oldini olish uchun Render'da
+//  pullik tarifga o'tib, "Persistent Disk" ulang:
+//    1) Render Dashboard -> xizmatingiz -> "Disks" -> "Add Disk"
+//    2) Mount Path: masalan /var/data (o'zingiz xohlagan nom)
+//    3) Keyin "Environment" bo'limiga DATA_DIR nomli o'zgaruvchi qo'shing,
+//       qiymati xuddi shu mount path bilan bir xil bo'lsin: /var/data
+//  Shundan keyin barcha ma'lumotlar (db.json, menu.json, ombor.json) doimiy
+//  diskka yoziladi va server qayta ishga tushsa ham yo'qolmaydi.
+//  Agar DATA_DIR sozlanmagan bo'lsa, fayllar oddiy holatda joriy papkaga yoziladi
+//  (lokal test uchun to'liq yetarli, lekin bepul Render'da vaqtinchalik bo'ladi).
 // ==================================================================================
 
 const express = require('express');
@@ -23,7 +29,6 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const { Server } = require('socket.io');
-const { MongoClient } = require('mongodb');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,34 +52,20 @@ app.use(express.json({ limit: '15mb' })); // Taom rasmlari (base64) uchun limit 
 app.use(express.static(__dirname, { index: false }));
 
 // ==================================================================================
-//  MA'LUMOTLAR BAZASI — MongoDB (agar MONGODB_URI bo'lsa) yoki JSON fayllar
-//
-//  MongoDB ulanish manzilini shu yerga emas, balki hosting-provayderingizning
-//  "Environment Variables" bo'limiga MONGODB_URI nomi bilan qo'shing:
-//
-//  // SHU JOYGA O'Z LINKINGIZNI YOZING — MONGODB_URI muhit o'zgaruvchisi sifatida
-//  // (masalan: mongodb+srv://user:parol@cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority)
+//  MA'LUMOTLAR SAQLANADIGAN JOY
+//  DATA_DIR muhit o'zgaruvchisi sozlangan bo'lsa (Render Persistent Disk mount path),
+//  fayllar o'sha yerga yoziladi. Sozlanmagan bo'lsa, joriy papka ishlatiladi.
 // ==================================================================================
+const DATA_DIR = process.env.DATA_DIR || __dirname;
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const USE_MONGO = !!MONGODB_URI;
-
-let mongoClient = null;
-let mongoDb = null;
-
-async function connectMongo() {
-  mongoClient = new MongoClient(MONGODB_URI);
-  await mongoClient.connect();
-  mongoDb = mongoClient.db('fastfood');
-  console.log('✅ MongoDB\'ga muvaffaqiyatli ulandi. Ma\'lumotlar endi doimiy saqlanadi.');
+// Agar DATA_DIR mavjud bo'lmasa (masalan birinchi marta), papkani yaratib qo'yamiz
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// ---------------------------------------------------------------------
-// JSON-FAYL REJIMI (MONGODB_URI bo'lmaganda ishlatiladigan zaxira usul)
-// ---------------------------------------------------------------------
-const DB_PATH = path.join(__dirname, 'db.json');
-const MENU_PATH = path.join(__dirname, 'menu.json');
-const OMBOR_PATH = path.join(__dirname, 'ombor.json');
+const DB_PATH = path.join(DATA_DIR, 'db.json');
+const MENU_PATH = path.join(DATA_DIR, 'menu.json');
+const OMBOR_PATH = path.join(DATA_DIR, 'ombor.json');
 
 function getDefaultStats() {
   const now = new Date();
@@ -87,7 +78,7 @@ function getDefaultStats() {
   };
 }
 
-function readDBFile() {
+function readDB() {
   if (!fs.existsSync(DB_PATH)) {
     const initial = { orders: [], stats: getDefaultStats(), archive: [] };
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
@@ -96,16 +87,17 @@ function readDBFile() {
   try {
     return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
   } catch (e) {
+    console.error('db.json faylini o\'qishda xato, yangi baza yaratilmoqda:', e);
     const initial = { orders: [], stats: getDefaultStats(), archive: [] };
     fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
     return initial;
   }
 }
-function writeDBFile(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+function writeDB(db) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
 }
 
-function readMenuFile() {
+function readMenu() {
   if (!fs.existsSync(MENU_PATH)) {
     fs.writeFileSync(MENU_PATH, JSON.stringify([], null, 2));
     return [];
@@ -113,14 +105,15 @@ function readMenuFile() {
   try {
     return JSON.parse(fs.readFileSync(MENU_PATH, 'utf-8'));
   } catch (e) {
+    console.error('menu.json faylini o\'qishda xato:', e);
     return [];
   }
 }
-function writeMenuFile(menu) {
+function writeMenu(menu) {
   fs.writeFileSync(MENU_PATH, JSON.stringify(menu, null, 2));
 }
 
-function readOmborFile() {
+function readOmbor() {
   if (!fs.existsSync(OMBOR_PATH)) {
     fs.writeFileSync(OMBOR_PATH, JSON.stringify([], null, 2));
     return [];
@@ -128,235 +121,50 @@ function readOmborFile() {
   try {
     return JSON.parse(fs.readFileSync(OMBOR_PATH, 'utf-8'));
   } catch (e) {
+    console.error('ombor.json faylini o\'qishda xato:', e);
     return [];
   }
 }
-function writeOmborFile(ombor) {
+function writeOmbor(ombor) {
   fs.writeFileSync(OMBOR_PATH, JSON.stringify(ombor, null, 2));
 }
 
-// ==================================================================================
-//  UNIVERSAL MA'LUMOTLAR FUNKSIYALARI
-//  Bu funksiyalar MongoDB yoki JSON-fayl orasida AVTOMAT tanlaydi (USE_MONGO ga qarab).
-//  Route'lar (pastda) faqat shu funksiyalarni chaqiradi — qaysi baza ishlatilayotganini
-//  bilishi shart emas.
-// ==================================================================================
-
-// ---- MENYU ----
-async function getMenu() {
-  if (USE_MONGO) return mongoDb.collection('menu').find({}).toArray();
-  return readMenuFile();
-}
-async function getMenuItemById(id) {
-  if (USE_MONGO) return mongoDb.collection('menu').findOne({ id });
-  return readMenuFile().find((i) => i.id === id);
-}
-async function insertMenuItem(item) {
-  if (USE_MONGO) {
-    await mongoDb.collection('menu').insertOne(item);
-  } else {
-    const menu = readMenuFile();
-    menu.push(item);
-    writeMenuFile(menu);
-  }
-  return item;
-}
-async function updateMenuItemById(id, fields) {
-  if (USE_MONGO) {
-    await mongoDb.collection('menu').updateOne({ id }, { $set: fields });
-    return mongoDb.collection('menu').findOne({ id });
-  }
-  const menu = readMenuFile();
-  const item = menu.find((i) => i.id === id);
-  if (!item) return null;
-  Object.assign(item, fields);
-  writeMenuFile(menu);
-  return item;
-}
-async function deleteMenuItemById(id) {
-  if (USE_MONGO) {
-    const r = await mongoDb.collection('menu').deleteOne({ id });
-    return r.deletedCount > 0;
-  }
-  const menu = readMenuFile();
-  const idx = menu.findIndex((i) => i.id === id);
-  if (idx === -1) return false;
-  menu.splice(idx, 1);
-  writeMenuFile(menu);
-  return true;
-}
-
-// ---- OMBOR ----
-const LOW_STOCK_THRESHOLD = 20;
-
-async function getOmbor() {
-  if (USE_MONGO) return mongoDb.collection('ombor').find({}).toArray();
-  return readOmborFile();
-}
-async function insertIngredient(ingredient) {
-  if (USE_MONGO) {
-    await mongoDb.collection('ombor').insertOne(ingredient);
-  } else {
-    const ombor = readOmborFile();
-    ombor.push(ingredient);
-    writeOmborFile(ombor);
-  }
-  return ingredient;
-}
-async function addStockToIngredientById(id, amount) {
-  if (USE_MONGO) {
-    await mongoDb.collection('ombor').updateOne({ id }, { $inc: { stock: amount } });
-    return mongoDb.collection('ombor').findOne({ id });
-  }
-  const ombor = readOmborFile();
-  const ing = ombor.find((i) => i.id === id);
-  if (!ing) return null;
-  ing.stock += amount;
-  writeOmborFile(ombor);
-  return ing;
-}
-async function updateIngredientById(id, fields) {
-  if (USE_MONGO) {
-    await mongoDb.collection('ombor').updateOne({ id }, { $set: fields });
-    return mongoDb.collection('ombor').findOne({ id });
-  }
-  const ombor = readOmborFile();
-  const ing = ombor.find((i) => i.id === id);
-  if (!ing) return null;
-  Object.assign(ing, fields);
-  writeOmborFile(ombor);
-  return ing;
-}
-async function deleteIngredientById(id) {
-  if (USE_MONGO) {
-    const r = await mongoDb.collection('ombor').deleteOne({ id });
-    return r.deletedCount > 0;
-  }
-  const ombor = readOmborFile();
-  const idx = ombor.findIndex((i) => i.id === id);
-  if (idx === -1) return false;
-  ombor.splice(idx, 1);
-  writeOmborFile(ombor);
-  return true;
-}
-
-// Buyurtma to'langanda, sotilgan taomlar retseptiga qarab ombordan avtomat ayirish
-async function applyOrderToOmbor(orderItems) {
-  const menu = await getMenu();
-  for (const orderItem of orderItems) {
-    const menuItem = menu.find((m) => m.id === orderItem.id);
-    if (!menuItem || !Array.isArray(menuItem.recipe)) continue;
-
-    for (const line of menuItem.recipe) {
-      const consumed = (line.qty || 0) * orderItem.qty;
-      if (consumed <= 0) continue;
-
-      if (USE_MONGO) {
-        await mongoDb
-          .collection('ombor')
-          .updateOne({ id: line.ingredientId }, { $inc: { stock: -consumed, totalSold: consumed } });
-      } else {
-        const ombor = readOmborFile();
-        const ing = ombor.find((i) => i.id === line.ingredientId);
-        if (ing) {
-          ing.stock -= consumed;
-          ing.totalSold = (ing.totalSold || 0) + consumed;
-          writeOmborFile(ombor);
-        }
-      }
-    }
-  }
-  return getOmbor();
-}
-
-// ---- BUYURTMALAR ----
-async function getOrders() {
-  if (USE_MONGO) return mongoDb.collection('orders').find({}).toArray();
-  return readDBFile().orders;
-}
-async function getOrderById(id) {
-  if (USE_MONGO) return mongoDb.collection('orders').findOne({ id });
-  return readDBFile().orders.find((o) => o.id === id);
-}
-async function insertOrder(order) {
-  if (USE_MONGO) {
-    await mongoDb.collection('orders').insertOne(order);
-  } else {
-    const dbFile = readDBFile();
-    dbFile.orders.push(order);
-    writeDBFile(dbFile);
-  }
-  return order;
-}
-async function updateOrderById(id, fields) {
-  if (USE_MONGO) {
-    await mongoDb.collection('orders').updateOne({ id }, { $set: fields });
-  } else {
-    const dbFile = readDBFile();
-    const order = dbFile.orders.find((o) => o.id === id);
-    if (order) Object.assign(order, fields);
-    writeDBFile(dbFile);
-  }
-}
-
-// ---- STATISTIKA VA ARXIV ----
-async function getStatsAndArchive() {
-  if (USE_MONGO) {
-    let doc = await mongoDb.collection('meta').findOne({ _id: 'app' });
-    if (!doc) {
-      doc = { _id: 'app', stats: getDefaultStats(), archive: [] };
-      await mongoDb.collection('meta').insertOne(doc);
-    }
-    return { stats: doc.stats, archive: doc.archive };
-  }
-  const dbFile = readDBFile();
-  return { stats: dbFile.stats, archive: dbFile.archive };
-}
-async function saveStatsAndArchive(stats, archive) {
-  if (USE_MONGO) {
-    await mongoDb.collection('meta').updateOne({ _id: 'app' }, { $set: { stats, archive } }, { upsert: true });
-  } else {
-    const dbFile = readDBFile();
-    dbFile.stats = stats;
-    dbFile.archive = archive;
-    writeDBFile(dbFile);
-  }
+function findMenuItem(id) {
+  return readMenu().find((item) => item.id === id);
 }
 
 // ----------------------------------------------------------------------------------
 //  OYLIK HISOBOTNI AVTOMAT TEKSHIRISH VA ARXIVLASH FUNKSIYASI
 // ----------------------------------------------------------------------------------
-async function checkMonthRollover() {
-  const { stats, archive } = await getStatsAndArchive();
+function checkMonthRollover(db) {
   const now = new Date();
   const realYear = now.getFullYear();
   const realMonth = now.getMonth() + 1;
 
-  const monthChanged = stats.currentYear !== realYear || stats.currentMonth !== realMonth;
+  const monthChanged = db.stats.currentYear !== realYear || db.stats.currentMonth !== realMonth;
 
   if (monthChanged) {
-    const hadActivity = stats.totalRevenue > 0 || stats.totalCost > 0;
+    const hadActivity = db.stats.totalRevenue > 0 || db.stats.totalCost > 0;
     if (hadActivity) {
-      archive.unshift({
-        year: stats.currentYear,
-        month: stats.currentMonth,
-        totalRevenue: stats.totalRevenue,
-        totalCost: stats.totalCost,
-        totalProfit: stats.totalProfit,
+      db.archive.unshift({
+        year: db.stats.currentYear,
+        month: db.stats.currentMonth,
+        totalRevenue: db.stats.totalRevenue,
+        totalCost: db.stats.totalCost,
+        totalProfit: db.stats.totalProfit,
         archivedAt: now.toISOString(),
       });
     }
-    stats.currentYear = realYear;
-    stats.currentMonth = realMonth;
-    stats.totalRevenue = 0;
-    stats.totalCost = 0;
-    stats.totalProfit = 0;
+    db.stats.currentYear = realYear;
+    db.stats.currentMonth = realMonth;
+    db.stats.totalRevenue = 0;
+    db.stats.totalCost = 0;
+    db.stats.totalProfit = 0;
 
-    await saveStatsAndArchive(stats, archive);
+    writeDB(db);
     console.log(`[OYLIK ARXIV] Yangi oy aniqlandi: ${realMonth}/${realYear}. Statistika 0 ga tushirildi.`);
   }
-
-  return { stats, archive };
+  return db;
 }
 
 // Taom/ingredient nomidan URL-friendly ID generatsiya qilish
@@ -368,8 +176,7 @@ function slugify(text) {
   return result || 'item';
 }
 
-async function generateMenuItemId(name) {
-  const menu = await getMenu();
+function generateMenuItemId(name, menu) {
   const base = slugify(name);
   let id = base;
   let counter = 2;
@@ -380,8 +187,7 @@ async function generateMenuItemId(name) {
   return id;
 }
 
-async function generateIngredientId(name) {
-  const ombor = await getOmbor();
+function generateIngredientId(name, ombor) {
   const base = slugify(name);
   let id = base;
   let counter = 2;
@@ -394,6 +200,31 @@ async function generateIngredientId(name) {
 
 function generateOrderId() {
   return 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+}
+
+const LOW_STOCK_THRESHOLD = 20;
+
+// Buyurtma to'langanda, taomlar retseptiga qarab ombordan avtomat ayirib,
+// sotilgan sonini oshiradigan funksiya
+function applyOrderToOmbor(orderItems) {
+  const ombor = readOmbor();
+  const menu = readMenu();
+
+  for (const orderItem of orderItems) {
+    const menuItem = menu.find((m) => m.id === orderItem.id);
+    if (!menuItem || !Array.isArray(menuItem.recipe)) continue;
+
+    for (const recipeLine of menuItem.recipe) {
+      const ingredient = ombor.find((i) => i.id === recipeLine.ingredientId);
+      if (!ingredient) continue;
+      const consumed = (recipeLine.qty || 0) * orderItem.qty;
+      ingredient.stock = ingredient.stock - consumed;
+      ingredient.totalSold = (ingredient.totalSold || 0) + consumed;
+    }
+  }
+
+  writeOmbor(ombor);
+  return ombor;
 }
 
 // ==================================================================================
@@ -413,315 +244,300 @@ app.get('/', (req, res) => {
 });
 
 // --------------------------- API: MENYUNI OLISH (mijoz uchun) ---------------------------
-app.get('/api/menu', async (req, res) => {
-  try {
-    const menu = await getMenu();
-    const publicMenu = menu.map(({ id, category, name, price, emoji, description, image }) => ({
-      id, category, name, price, emoji, description, image,
-    }));
-    res.json(publicMenu);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
-  }
+app.get('/api/menu', (req, res) => {
+  const publicMenu = readMenu().map(({ id, category, name, price, emoji, description, image }) => ({
+    id, category, name, price, emoji, description, image,
+  }));
+  res.json(publicMenu);
 });
 
 // =====================================================================================
 //  ADMIN UCHUN MENYU BOSHQARUVI
 // =====================================================================================
 
-app.get('/api/admin/menu', async (req, res) => {
-  try {
-    res.json(await getMenu());
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
-  }
+app.get('/api/admin/menu', (req, res) => {
+  res.json(readMenu());
 });
 
-app.post('/api/admin/menu', async (req, res) => {
-  try {
-    const { category, name, price, cost, emoji, description, image, recipe } = req.body;
-    if (!category || !name || price === undefined) {
-      return res.status(400).json({ error: 'Kategoriya, nom va narx to\'ldirilishi shart.' });
-    }
+app.post('/api/admin/menu', (req, res) => {
+  const { category, name, price, cost, emoji, description, image, recipe } = req.body;
 
-    const newItem = {
-      id: await generateMenuItemId(name),
-      category: String(category).trim(),
-      name: String(name).trim(),
-      price: Math.max(0, parseInt(price, 10) || 0),
-      cost: Math.max(0, parseInt(cost, 10) || 0),
-      emoji: emoji && String(emoji).trim() ? String(emoji).trim() : '🍽️',
-      description: description ? String(description).trim() : '',
-      image: image ? String(image) : '',
-      recipe: Array.isArray(recipe)
-        ? recipe.filter((r) => r && r.ingredientId).map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
-        : [],
-    };
-
-    await insertMenuItem(newItem);
-    io.emit('menu-updated');
-    res.status(201).json(newItem);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+  if (!category || !name || price === undefined) {
+    return res.status(400).json({ error: 'Kategoriya, nom va narx to\'ldirilishi shart.' });
   }
+
+  const menu = readMenu();
+  const newItem = {
+    id: generateMenuItemId(name, menu),
+    category: String(category).trim(),
+    name: String(name).trim(),
+    price: Math.max(0, parseInt(price, 10) || 0),
+    cost: Math.max(0, parseInt(cost, 10) || 0),
+    emoji: emoji && String(emoji).trim() ? String(emoji).trim() : '🍽️',
+    description: description ? String(description).trim() : '',
+    image: image ? String(image) : '',
+    recipe: Array.isArray(recipe)
+      ? recipe.filter((r) => r && r.ingredientId).map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
+      : [],
+  };
+
+  menu.push(newItem);
+  writeMenu(menu);
+  io.emit('menu-updated');
+
+  res.status(201).json(newItem);
 });
 
-app.put('/api/admin/menu/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { category, name, price, cost, emoji, description, image, recipe } = req.body;
+app.put('/api/admin/menu/:id', (req, res) => {
+  const { id } = req.params;
+  const { category, name, price, cost, emoji, description, image, recipe } = req.body;
 
-    const fields = {};
-    if (category !== undefined) fields.category = String(category).trim();
-    if (name !== undefined) fields.name = String(name).trim();
-    if (price !== undefined) fields.price = Math.max(0, parseInt(price, 10) || 0);
-    if (cost !== undefined) fields.cost = Math.max(0, parseInt(cost, 10) || 0);
-    if (emoji !== undefined) fields.emoji = String(emoji).trim() || '🍽️';
-    if (description !== undefined) fields.description = String(description).trim();
-    if (image !== undefined) fields.image = String(image);
-    if (recipe !== undefined) {
-      fields.recipe = Array.isArray(recipe)
-        ? recipe.filter((r) => r && r.ingredientId).map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
-        : [];
-    }
-
-    const updated = await updateMenuItemById(id, fields);
-    if (!updated) return res.status(404).json({ error: 'Taom topilmadi.' });
-
-    io.emit('menu-updated');
-    res.json(updated);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+  const menu = readMenu();
+  const item = menu.find((i) => i.id === id);
+  if (!item) {
+    return res.status(404).json({ error: 'Taom topilmadi.' });
   }
+
+  if (category !== undefined) item.category = String(category).trim();
+  if (name !== undefined) item.name = String(name).trim();
+  if (price !== undefined) item.price = Math.max(0, parseInt(price, 10) || 0);
+  if (cost !== undefined) item.cost = Math.max(0, parseInt(cost, 10) || 0);
+  if (emoji !== undefined) item.emoji = String(emoji).trim() || '🍽️';
+  if (description !== undefined) item.description = String(description).trim();
+  if (image !== undefined) item.image = String(image);
+  if (recipe !== undefined) {
+    item.recipe = Array.isArray(recipe)
+      ? recipe.filter((r) => r && r.ingredientId).map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
+      : [];
+  }
+
+  writeMenu(menu);
+  io.emit('menu-updated');
+
+  res.json(item);
 });
 
-app.delete('/api/admin/menu/:id', async (req, res) => {
-  try {
-    const ok = await deleteMenuItemById(req.params.id);
-    if (!ok) return res.status(404).json({ error: 'Taom topilmadi.' });
-    io.emit('menu-updated');
-    res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.delete('/api/admin/menu/:id', (req, res) => {
+  const { id } = req.params;
+  const menu = readMenu();
+  const index = menu.findIndex((i) => i.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Taom topilmadi.' });
   }
+  menu.splice(index, 1);
+  writeMenu(menu);
+  io.emit('menu-updated');
+
+  res.json({ success: true });
 });
 
 // --------------------------- API: BUYURTMA YARATISH ---------------------------
-app.post('/api/orders', async (req, res) => {
-  try {
-    const { table, items } = req.body;
+app.post('/api/orders', (req, res) => {
+  const { table, items } = req.body;
 
-    if (!table) {
-      return res.status(400).json({ error: 'Stol raqami ko\'rsatilmagan.' });
-    }
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Savat bo\'sh. Buyurtma berish uchun kamida bitta taom tanlang.' });
-    }
-
-    const orderItems = [];
-    let total = 0;
-    let totalCost = 0;
-
-    for (const reqItem of items) {
-      const menuItem = await getMenuItemById(reqItem.id);
-      if (!menuItem) continue;
-      const qty = Math.max(1, parseInt(reqItem.qty, 10) || 1);
-
-      orderItems.push({
-        id: menuItem.id,
-        name: menuItem.name,
-        price: menuItem.price,
-        qty,
-        lineTotal: menuItem.price * qty,
-      });
-
-      total += menuItem.price * qty;
-      totalCost += menuItem.cost * qty;
-    }
-
-    if (orderItems.length === 0) {
-      return res.status(400).json({ error: 'Savatdagi taomlar menyuda topilmadi.' });
-    }
-
-    const order = {
-      id: generateOrderId(),
-      table: String(table),
-      items: orderItems,
-      total,
-      totalCost,
-      // -----------------------------------------------------------------
-      // TO'LOV USULI: Hozircha faqat "Naqd pul / Terminal" (kassada to'lash).
-      // Kelajakda Click yoki Payme kabi onlayn to'lov tizimlarini ulash uchun:
-      // // SHU JOYGA O'Z LINKINGIZNI YOZING (Click/Payme API endpoint manzili)
-      // -----------------------------------------------------------------
-      paymentMethod: 'naqd_terminal',
-      status: 'new',
-      createdAt: new Date().toISOString(),
-      paidAt: null,
-    };
-
-    await insertOrder(order);
-
-    io.to('admin-room').emit('new-order', order);
-    io.to('table-' + order.table).emit('order-created', order);
-
-    res.status(201).json(order);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+  if (!table) {
+    return res.status(400).json({ error: 'Stol raqami ko\'rsatilmagan.' });
   }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Savat bo\'sh. Buyurtma berish uchun kamida bitta taom tanlang.' });
+  }
+
+  const orderItems = [];
+  let total = 0;
+  let totalCost = 0;
+
+  for (const reqItem of items) {
+    const menuItem = findMenuItem(reqItem.id);
+    if (!menuItem) continue;
+    const qty = Math.max(1, parseInt(reqItem.qty, 10) || 1);
+
+    orderItems.push({
+      id: menuItem.id,
+      name: menuItem.name,
+      price: menuItem.price,
+      qty,
+      lineTotal: menuItem.price * qty,
+    });
+
+    total += menuItem.price * qty;
+    totalCost += menuItem.cost * qty;
+  }
+
+  if (orderItems.length === 0) {
+    return res.status(400).json({ error: 'Savatdagi taomlar menyuda topilmadi.' });
+  }
+
+  const order = {
+    id: generateOrderId(),
+    table: String(table),
+    items: orderItems,
+    total,
+    totalCost,
+    // -----------------------------------------------------------------
+    // TO'LOV USULI: Hozircha faqat "Naqd pul / Terminal".
+    // Kelajakda Click/Payme ulash uchun:
+    // // SHU JOYGA O'Z LINKINGIZNI YOZING (Click/Payme API endpoint manzili)
+    // -----------------------------------------------------------------
+    paymentMethod: 'naqd_terminal',
+    status: 'new',
+    createdAt: new Date().toISOString(),
+    paidAt: null,
+  };
+
+  const db = readDB();
+  db.orders.push(order);
+  writeDB(db);
+
+  io.to('admin-room').emit('new-order', order);
+  io.to('table-' + order.table).emit('order-created', order);
+
+  res.status(201).json(order);
 });
 
-app.get('/api/orders', async (req, res) => {
-  try {
-    const orders = await getOrders();
-    const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json(sorted);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
-  }
+app.get('/api/orders', (req, res) => {
+  const db = readDB();
+  const sorted = [...db.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(sorted);
 });
 
-app.post('/api/orders/:id/pay', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await getOrderById(id);
-    if (!order) return res.status(404).json({ error: 'Buyurtma topilmadi.' });
-    if (order.status === 'paid') return res.status(400).json({ error: 'Bu buyurtma allaqachon to\'langan.' });
+app.post('/api/orders/:id/pay', (req, res) => {
+  const { id } = req.params;
+  let db = readDB();
 
-    const { stats, archive } = await checkMonthRollover();
-
-    const paidAt = new Date().toISOString();
-    stats.totalRevenue += order.total;
-    stats.totalCost += order.totalCost;
-    stats.totalProfit = stats.totalRevenue - stats.totalCost;
-
-    await saveStatsAndArchive(stats, archive);
-    await updateOrderById(id, { status: 'paid', paidAt });
-
-    const updatedOmbor = await applyOrderToOmbor(order.items);
-    const lowStockItems = updatedOmbor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD);
-
-    const paidOrder = { ...order, status: 'paid', paidAt };
-
-    io.to('admin-room').emit('order-paid', paidOrder);
-    io.to('admin-room').emit('stats-update', { stats, archive });
-    io.to('admin-room').emit('ombor-updated', { ombor: updatedOmbor, lowStockItems });
-    io.to('table-' + order.table).emit('order-paid', paidOrder);
-
-    res.json(paidOrder);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+  const order = db.orders.find((o) => o.id === id);
+  if (!order) {
+    return res.status(404).json({ error: 'Buyurtma topilmadi.' });
   }
+  if (order.status === 'paid') {
+    return res.status(400).json({ error: 'Bu buyurtma allaqachon to\'langan.' });
+  }
+
+  db = checkMonthRollover(db);
+
+  order.status = 'paid';
+  order.paidAt = new Date().toISOString();
+
+  db.stats.totalRevenue += order.total;
+  db.stats.totalCost += order.totalCost;
+  db.stats.totalProfit = db.stats.totalRevenue - db.stats.totalCost;
+
+  writeDB(db);
+
+  const updatedOmbor = applyOrderToOmbor(order.items);
+  const lowStockItems = updatedOmbor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD);
+
+  io.to('admin-room').emit('order-paid', order);
+  io.to('admin-room').emit('stats-update', { stats: db.stats, archive: db.archive });
+  io.to('admin-room').emit('ombor-updated', { ombor: updatedOmbor, lowStockItems });
+  io.to('table-' + order.table).emit('order-paid', order);
+
+  res.json(order);
 });
 
-app.post('/api/orders/:id/cancel', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await getOrderById(id);
-    if (!order) return res.status(404).json({ error: 'Buyurtma topilmadi.' });
-    if (order.status === 'paid') return res.status(400).json({ error: 'To\'langan buyurtmani bekor qilib bo\'lmaydi.' });
-
-    await updateOrderById(id, { status: 'cancelled' });
-    const cancelledOrder = { ...order, status: 'cancelled' };
-
-    io.to('admin-room').emit('order-cancelled', cancelledOrder);
-    io.to('table-' + order.table).emit('order-cancelled', cancelledOrder);
-    res.json(cancelledOrder);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.post('/api/orders/:id/cancel', (req, res) => {
+  const { id } = req.params;
+  const db = readDB();
+  const order = db.orders.find((o) => o.id === id);
+  if (!order) {
+    return res.status(404).json({ error: 'Buyurtma topilmadi.' });
   }
+  if (order.status === 'paid') {
+    return res.status(400).json({ error: 'To\'langan buyurtmani bekor qilib bo\'lmaydi.' });
+  }
+  order.status = 'cancelled';
+  writeDB(db);
+  io.to('admin-room').emit('order-cancelled', order);
+  io.to('table-' + order.table).emit('order-cancelled', order);
+  res.json(order);
 });
 
-app.get('/api/stats', async (req, res) => {
-  try {
-    const { stats, archive } = await checkMonthRollover();
-    res.json({ stats, archive });
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
-  }
+app.get('/api/stats', (req, res) => {
+  let db = readDB();
+  db = checkMonthRollover(db);
+  res.json({ stats: db.stats, archive: db.archive });
 });
 
 // =====================================================================================
 //  ADMIN UCHUN OMBOR (INVENTAR) BOSHQARUVI
 // =====================================================================================
 
-app.get('/api/admin/ombor', async (req, res) => {
-  try {
-    const ombor = await getOmbor();
-    res.json({ ombor, lowStockThreshold: LOW_STOCK_THRESHOLD });
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
-  }
+app.get('/api/admin/ombor', (req, res) => {
+  const ombor = readOmbor();
+  res.json({ ombor, lowStockThreshold: LOW_STOCK_THRESHOLD });
 });
 
-app.post('/api/admin/ombor', async (req, res) => {
-  try {
-    const { name, unit, stock } = req.body;
-    if (!name) return res.status(400).json({ error: 'Ingredient nomini kiriting.' });
-
-    const newIngredient = {
-      id: await generateIngredientId(name),
-      name: String(name).trim(),
-      unit: unit ? String(unit).trim() : 'dona',
-      stock: Math.max(0, parseFloat(stock) || 0),
-      totalSold: 0,
-    };
-    await insertIngredient(newIngredient);
-
-    const ombor = await getOmbor();
-    io.to('admin-room').emit('ombor-updated', { ombor, lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD) });
-    res.status(201).json(newIngredient);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.post('/api/admin/ombor', (req, res) => {
+  const { name, unit, stock } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Ingredient nomini kiriting.' });
   }
+  const ombor = readOmbor();
+  const newIngredient = {
+    id: generateIngredientId(name, ombor),
+    name: String(name).trim(),
+    unit: unit ? String(unit).trim() : 'dona',
+    stock: Math.max(0, parseFloat(stock) || 0),
+    totalSold: 0,
+  };
+  ombor.push(newIngredient);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.status(201).json(newIngredient);
 });
 
-app.post('/api/admin/ombor/:id/add-stock', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { amount } = req.body;
-    const updated = await addStockToIngredientById(id, Math.max(0, parseFloat(amount) || 0));
-    if (!updated) return res.status(404).json({ error: 'Ingredient topilmadi.' });
-
-    const ombor = await getOmbor();
-    io.to('admin-room').emit('ombor-updated', { ombor, lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD) });
-    res.json(updated);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.post('/api/admin/ombor/:id/add-stock', (req, res) => {
+  const { id } = req.params;
+  const { amount } = req.body;
+  const ombor = readOmbor();
+  const ingredient = ombor.find((i) => i.id === id);
+  if (!ingredient) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
   }
+  ingredient.stock += Math.max(0, parseFloat(amount) || 0);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json(ingredient);
 });
 
-app.put('/api/admin/ombor/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, unit, stock } = req.body;
-    const fields = {};
-    if (name !== undefined) fields.name = String(name).trim();
-    if (unit !== undefined) fields.unit = String(unit).trim();
-    if (stock !== undefined) fields.stock = Math.max(0, parseFloat(stock) || 0);
-
-    const updated = await updateIngredientById(id, fields);
-    if (!updated) return res.status(404).json({ error: 'Ingredient topilmadi.' });
-
-    const ombor = await getOmbor();
-    io.to('admin-room').emit('ombor-updated', { ombor, lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD) });
-    res.json(updated);
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.put('/api/admin/ombor/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, unit, stock } = req.body;
+  const ombor = readOmbor();
+  const ingredient = ombor.find((i) => i.id === id);
+  if (!ingredient) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
   }
+  if (name !== undefined) ingredient.name = String(name).trim();
+  if (unit !== undefined) ingredient.unit = String(unit).trim();
+  if (stock !== undefined) ingredient.stock = Math.max(0, parseFloat(stock) || 0);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json(ingredient);
 });
 
-app.delete('/api/admin/ombor/:id', async (req, res) => {
-  try {
-    const ok = await deleteIngredientById(req.params.id);
-    if (!ok) return res.status(404).json({ error: 'Ingredient topilmadi.' });
-
-    const ombor = await getOmbor();
-    io.to('admin-room').emit('ombor-updated', { ombor, lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD) });
-    res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: 'Server xatosi: ' + e.message });
+app.delete('/api/admin/ombor/:id', (req, res) => {
+  const { id } = req.params;
+  const ombor = readOmbor();
+  const index = ombor.findIndex((i) => i.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
   }
+  ombor.splice(index, 1);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json({ success: true });
 });
 
 // ==================================================================================
@@ -746,43 +562,21 @@ io.on('connection', (socket) => {
 // ----------------------------------------------------------------------------------
 //  HAR SOATDA AVTOMAT OYLIK ARXIV TEKSHIRUVI
 // ----------------------------------------------------------------------------------
-setInterval(async () => {
-  try {
-    const before = await getStatsAndArchive();
-    const beforeStr = JSON.stringify(before.stats);
-    const after = await checkMonthRollover();
-    if (beforeStr !== JSON.stringify(after.stats)) {
-      io.to('admin-room').emit('stats-update', after);
-    }
-  } catch (e) {
-    console.error('Oylik tekshiruvda xato:', e);
+setInterval(() => {
+  let db = readDB();
+  const before = JSON.stringify(db.stats);
+  db = checkMonthRollover(db);
+  const after = JSON.stringify(db.stats);
+  if (before !== after) {
+    io.to('admin-room').emit('stats-update', { stats: db.stats, archive: db.archive });
   }
 }, 60 * 60 * 1000);
 
-// ==================================================================================
-//  SERVERNI ISHGA TUSHIRISH
-// ==================================================================================
-async function start() {
-  if (USE_MONGO) {
-    try {
-      await connectMongo();
-    } catch (e) {
-      console.error('❌ MongoDB\'ga ulanib bo\'lmadi:', e.message);
-      console.error('   MONGODB_URI to\'g\'riligini va Network Access sozlamalarini tekshiring.');
-      process.exit(1);
-    }
-  } else {
-    console.log('ℹ️  MONGODB_URI topilmadi — JSON-fayl rejimida ishga tushmoqda (lokal test uchun).');
-  }
-
-  server.listen(PORT, () => {
-    console.log('==============================================');
-    console.log(`  FAST-FOOD QR BUYURTMA TIZIMI ISHGA TUSHDI`);
-    console.log(`  Baza turi: ${USE_MONGO ? 'MongoDB (doimiy)' : 'JSON-fayl (vaqtinchalik)'}`);
-    console.log(`  Mijoz menyusi:  http://localhost:${PORT}/menu?table=4`);
-    console.log(`  Kassa paneli:   http://localhost:${PORT}/admin`);
-    console.log('==============================================');
-  });
-}
-
-start();
+server.listen(PORT, () => {
+  console.log('==============================================');
+  console.log(`  FAST-FOOD QR BUYURTMA TIZIMI ISHGA TUSHDI`);
+  console.log(`  Ma'lumotlar papkasi: ${DATA_DIR}`);
+  console.log(`  Mijoz menyusi:  http://localhost:${PORT}/menu?table=4`);
+  console.log(`  Kassa paneli:   http://localhost:${PORT}/admin`);
+  console.log('==============================================');
+});
