@@ -1,18 +1,19 @@
 {
-  "name": "best-food",
+  "name": "fastfood-qr-order-system",
   "version": "1.0.0",
-  "description": "",
+  "description": "Fast-Food kafesi uchun QR-kod orqali stolda buyurtma berish tizimi (Node.js + Express + Socket.io + JSON fayl-baza)",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mongodb": "^6.9.0",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
