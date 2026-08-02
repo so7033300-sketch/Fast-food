@@ -33,7 +33,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+// MUHIM: limit oshirilgan — chunki taom rasmlari (base64) katta hajmli bo'lishi mumkin.
+app.use(express.json({ limit: '15mb' }));
 
 // ----------------------------------------------------------------------------------
 //  STATIK FAYLLAR (index.html, admin.html va boshqalar)
@@ -215,6 +216,77 @@ function generateMenuItemId(name, menu) {
 }
 
 // ==================================================================================
+//  OMBOR (INVENTAR) TIZIMI — "ombor.json" faylida saqlanadi
+//
+//  Har bir ingredient/mahsulot: { id, name, unit, stock, totalSold }
+//   - stock:      hozirda ombordagi qoldiq miqdor
+//   - totalSold:  shu ingredientdan hozirgacha jami sotilgan (sarflangan) miqdor
+//
+//  Taomlar (menu.json) endi "recipe" maydoniga ega bo'lishi mumkin:
+//   recipe: [ { ingredientId: 'burger-noni', qty: 1 }, ... ]
+//  Buyurtma TO'LANGANDA, har bir taom uchun retseptdagi ingredientlar
+//  ombordan avtomat ayiriladi (qty * buyurtma soni).
+//
+//  KAM QOLGAN MAHSULOT OGOHLANTIRISHI: agar biror ingredient qoldig'i
+//  LOW_STOCK_THRESHOLD (20) dan kam yoki teng bo'lsa, admin panelida
+//  "Yangi buyurtmalar" bo'limi tepasida qizil ogohlantirish chiqadi.
+// ==================================================================================
+const OMBOR_PATH = path.join(__dirname, 'ombor.json');
+const LOW_STOCK_THRESHOLD = 20;
+
+function readOmbor() {
+  if (!fs.existsSync(OMBOR_PATH)) {
+    fs.writeFileSync(OMBOR_PATH, JSON.stringify([], null, 2));
+    return [];
+  }
+  const raw = fs.readFileSync(OMBOR_PATH, 'utf-8');
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('ombor.json faylini o\'qishda xato:', e);
+    return [];
+  }
+}
+
+function writeOmbor(ombor) {
+  fs.writeFileSync(OMBOR_PATH, JSON.stringify(ombor, null, 2));
+}
+
+function generateIngredientId(name, ombor) {
+  const base = slugify(name);
+  let id = base;
+  let counter = 2;
+  while (ombor.find((i) => i.id === id)) {
+    id = base + '-' + counter;
+    counter++;
+  }
+  return id;
+}
+
+// Buyurtma to'langanda, taomlar retseptiga qarab ombordan ayirib, sotilgan
+// sonini oshiradigan funksiya. O'zgargan ombor ro'yxatini qaytaradi.
+function applyOrderToOmbor(orderItems) {
+  const ombor = readOmbor();
+  const menu = readMenu();
+
+  for (const orderItem of orderItems) {
+    const menuItem = menu.find((m) => m.id === orderItem.id);
+    if (!menuItem || !Array.isArray(menuItem.recipe)) continue;
+
+    for (const recipeLine of menuItem.recipe) {
+      const ingredient = ombor.find((i) => i.id === recipeLine.ingredientId);
+      if (!ingredient) continue;
+      const consumed = (recipeLine.qty || 0) * orderItem.qty;
+      ingredient.stock = ingredient.stock - consumed;
+      ingredient.totalSold = (ingredient.totalSold || 0) + consumed;
+    }
+  }
+
+  writeOmbor(ombor);
+  return ombor;
+}
+
+// ==================================================================================
 //  YORDAMCHI FUNKSIYA — buyurtma ID generatsiyasi
 // ==================================================================================
 function generateOrderId() {
@@ -245,13 +317,14 @@ app.get('/', (req, res) => {
 // --------------------------- API: MENYUNI OLISH (mijoz uchun) ---------------------------
 // Mijoz tomoniga "cost" (tannarx) maydoni YUBORILMAYDI — bu ichki ma'lumot.
 app.get('/api/menu', (req, res) => {
-  const publicMenu = readMenu().map(({ id, category, name, price, emoji, description }) => ({
+  const publicMenu = readMenu().map(({ id, category, name, price, emoji, description, image }) => ({
     id,
     category,
     name,
     price,
     emoji,
     description,
+    image,
   }));
   res.json(publicMenu);
 });
@@ -269,7 +342,7 @@ app.get('/api/admin/menu', (req, res) => {
 
 // Yangi taom qo'shish
 app.post('/api/admin/menu', (req, res) => {
-  const { category, name, price, cost, emoji, description } = req.body;
+  const { category, name, price, cost, emoji, description, image, recipe } = req.body;
 
   if (!category || !name || price === undefined) {
     return res.status(400).json({ error: 'Kategoriya, nom va narx to\'ldirilishi shart.' });
@@ -284,6 +357,14 @@ app.post('/api/admin/menu', (req, res) => {
     cost: Math.max(0, parseInt(cost, 10) || 0),
     emoji: emoji && String(emoji).trim() ? String(emoji).trim() : '🍽️',
     description: description ? String(description).trim() : '',
+    // "image" — taom rasmi. URL yoki base64 data-URI (fayldan yuklanganda) bo'lishi mumkin.
+    image: image ? String(image) : '',
+    // "recipe" — bu taom sotilganda ombordan qaysi ingredient qancha ayirilishini belgilaydi.
+    recipe: Array.isArray(recipe)
+      ? recipe
+          .filter((r) => r && r.ingredientId)
+          .map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
+      : [],
   };
 
   menu.push(newItem);
@@ -298,7 +379,7 @@ app.post('/api/admin/menu', (req, res) => {
 // Mavjud taomni tahrirlash
 app.put('/api/admin/menu/:id', (req, res) => {
   const { id } = req.params;
-  const { category, name, price, cost, emoji, description } = req.body;
+  const { category, name, price, cost, emoji, description, image, recipe } = req.body;
 
   const menu = readMenu();
   const item = menu.find((i) => i.id === id);
@@ -312,6 +393,14 @@ app.put('/api/admin/menu/:id', (req, res) => {
   if (cost !== undefined) item.cost = Math.max(0, parseInt(cost, 10) || 0);
   if (emoji !== undefined) item.emoji = String(emoji).trim() || '🍽️';
   if (description !== undefined) item.description = String(description).trim();
+  if (image !== undefined) item.image = String(image);
+  if (recipe !== undefined) {
+    item.recipe = Array.isArray(recipe)
+      ? recipe
+          .filter((r) => r && r.ingredientId)
+          .map((r) => ({ ingredientId: r.ingredientId, qty: Math.max(0, parseFloat(r.qty) || 0) }))
+      : [];
+  }
 
   writeMenu(menu);
   io.emit('menu-updated');
@@ -440,9 +529,17 @@ app.post('/api/orders/:id/pay', (req, res) => {
 
   writeDB(db);
 
+  // --------------------------------------------------------------------
+  // OMBORDAN AVTOMAT AYIRISH: bu buyurtmadagi har bir taom retseptiga
+  // qarab, tegishli ingredientlar ombordan ayiriladi va "sotilgan" soni oshadi.
+  // --------------------------------------------------------------------
+  const updatedOmbor = applyOrderToOmbor(order.items);
+  const lowStockItems = updatedOmbor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD);
+
   // Admin panelidagi barcha ochiq oynalarga statistikani yangilash uchun signal
   io.to('admin-room').emit('order-paid', order);
   io.to('admin-room').emit('stats-update', { stats: db.stats, archive: db.archive });
+  io.to('admin-room').emit('ombor-updated', { ombor: updatedOmbor, lowStockItems });
 
   // Mijoz ekraniga ham "to'landi" signali (agar kerak bo'lsa)
   io.to('table-' + order.table).emit('order-paid', order);
@@ -473,6 +570,94 @@ app.get('/api/stats', (req, res) => {
   let db = readDB();
   db = checkMonthRollover(db); // Sahifa ochilganda ham tekshirib qo'yamiz
   res.json({ stats: db.stats, archive: db.archive });
+});
+
+// =====================================================================================
+//  ADMIN UCHUN OMBOR (INVENTAR) BOSHQARUVI
+// =====================================================================================
+
+// Butun ombor ro'yxatini olish
+app.get('/api/admin/ombor', (req, res) => {
+  const ombor = readOmbor();
+  res.json({ ombor, lowStockThreshold: LOW_STOCK_THRESHOLD });
+});
+
+// Yangi ingredient/mahsulot turi qo'shish (masalan "Burger noni", birligi "dona")
+app.post('/api/admin/ombor', (req, res) => {
+  const { name, unit, stock } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Ingredient nomini kiriting.' });
+  }
+  const ombor = readOmbor();
+  const newIngredient = {
+    id: generateIngredientId(name, ombor),
+    name: String(name).trim(),
+    unit: unit ? String(unit).trim() : 'dona',
+    stock: Math.max(0, parseFloat(stock) || 0),
+    totalSold: 0,
+  };
+  ombor.push(newIngredient);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.status(201).json(newIngredient);
+});
+
+// Kunlik ombor to'ldirish — mavjud ingredientga miqdor QO'SHISH (masalan har kuni yangi yetkazilganda)
+app.post('/api/admin/ombor/:id/add-stock', (req, res) => {
+  const { id } = req.params;
+  const { amount } = req.body;
+  const ombor = readOmbor();
+  const ingredient = ombor.find((i) => i.id === id);
+  if (!ingredient) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
+  }
+  ingredient.stock += Math.max(0, parseFloat(amount) || 0);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json(ingredient);
+});
+
+// Ingredientni to'liq tahrirlash (nomi, birligi, qoldig'ini qo'lda to'g'irlash)
+app.put('/api/admin/ombor/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, unit, stock } = req.body;
+  const ombor = readOmbor();
+  const ingredient = ombor.find((i) => i.id === id);
+  if (!ingredient) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
+  }
+  if (name !== undefined) ingredient.name = String(name).trim();
+  if (unit !== undefined) ingredient.unit = String(unit).trim();
+  if (stock !== undefined) ingredient.stock = Math.max(0, parseFloat(stock) || 0);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json(ingredient);
+});
+
+// Ingredientni o'chirish
+app.delete('/api/admin/ombor/:id', (req, res) => {
+  const { id } = req.params;
+  const ombor = readOmbor();
+  const index = ombor.findIndex((i) => i.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Ingredient topilmadi.' });
+  }
+  ombor.splice(index, 1);
+  writeOmbor(ombor);
+  io.to('admin-room').emit('ombor-updated', {
+    ombor,
+    lowStockItems: ombor.filter((i) => i.stock <= LOW_STOCK_THRESHOLD),
+  });
+  res.json({ success: true });
 });
 
 // ==================================================================================
